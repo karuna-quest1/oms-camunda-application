@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  id="Definitions_OMS"
+                  targetNamespace="http://oms.com/bpmn"
+                  exporter="oms-camunda" exporterVersion="1.0.0">
+
+  <!-- ================= Messages (Temporal signals/updates) ================= -->
+  <!-- correlationKey = orderId: every external event is routed to the order's
+       process instance by its order id, exactly as Temporal signals targeted a
+       workflowId of order_<orderId>. -->
+  <bpmn:message id="Message_SupportCorrection" name="SupportCorrection">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=orderId" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+  <bpmn:message id="Message_CapturePayment" name="CapturePayment">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=orderId" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+  <bpmn:message id="Message_CancelOrder" name="CancelOrder">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=orderId" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+
+  <!-- ================= Errors (thrown by workers) ========================== -->
+  <bpmn:error id="Error_InvalidOrder" name="InvalidOrder" errorCode="INVALID_ORDER" />
+  <bpmn:error id="Error_InvalidPayment" name="InvalidPayment" errorCode="INVALID_PAYMENT" />
+
+  <bpmn:process id="order-processing" name="Order Processing" isExecutable="true">
+
+    <!-- ======================= Main happy path ============================ -->
+    <bpmn:startEvent id="StartEvent_1" name="Order received">
+      <bpmn:outgoing>Flow_start_received</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="Task_UpdateReceived" name="Dashboard: ORDER_RECEIVED">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="update-dashboard" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="status" value="ORDER_RECEIVED" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_start_received</bpmn:incoming>
+      <bpmn:outgoing>Flow_received_validate</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_ValidateOrder" name="Validate order (Commerce API)">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="validate-order" retries="2147483647" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_received_validate</bpmn:incoming>
+      <bpmn:incoming>Flow_catchcorr_validate</bpmn:incoming>
+      <bpmn:outgoing>Flow_validate_pending</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_UpdatePaymentPending" name="Dashboard: PAYMENT_PENDING">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="update-dashboard" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="status" value="PAYMENT_PENDING" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_validate_pending</bpmn:incoming>
+      <bpmn:outgoing>Flow_pending_catchpay</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:intermediateCatchEvent id="Catch_Payment" name="Await CapturePayment">
+      <bpmn:incoming>Flow_pending_catchpay</bpmn:incoming>
+      <bpmn:incoming>Flow_bnd_catchpay</bpmn:incoming>
+      <bpmn:outgoing>Flow_catchpay_validatepay</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_Payment" messageRef="Message_CapturePayment" />
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:serviceTask id="Task_ValidatePayment" name="Validate payment RRN">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="validate-payment" retries="5" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_catchpay_validatepay</bpmn:incoming>
+      <bpmn:outgoing>Flow_validatepay_captured</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_UpdateCaptured" name="Dashboard: PAYMENT_CAPTURED">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="update-dashboard" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="status" value="PAYMENT_CAPTURED" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_validatepay_captured</bpmn:incoming>
+      <bpmn:outgoing>Flow_captured_enrich</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_Enrich" name="Enrich with PIM">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="enrich-order" retries="2147483647" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_captured_enrich</bpmn:incoming>
+      <bpmn:outgoing>Flow_enrich_publish</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_Publish" name="Publish to fulfillment">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="publish-fulfillment" retries="2147483647" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_enrich_publish</bpmn:incoming>
+      <bpmn:outgoing>Flow_publish_fulfilled</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_UpdateFulfilled" name="Dashboard: FULFILLED">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="update-dashboard" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="status" value="FULFILLED" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_publish_fulfilled</bpmn:incoming>
+      <bpmn:outgoing>Flow_fulfilled_end</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndEvent_Done" name="Order fulfilled">
+      <bpmn:incoming>Flow_fulfilled_end</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- =================== Correction loop (INVALID_ORDER) ================= -->
+    <bpmn:boundaryEvent id="Bnd_InvalidOrder" name="INVALID_ORDER" attachedToRef="Task_ValidateOrder">
+      <bpmn:outgoing>Flow_bnd_awaitcorr</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="EED_InvalidOrder" errorRef="Error_InvalidOrder" />
+    </bpmn:boundaryEvent>
+
+    <bpmn:serviceTask id="Task_AwaitCorrectionStatus" name="Dashboard: AWAITING_CORRECTION">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="update-dashboard" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="status" value="AWAITING_CORRECTION" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_bnd_awaitcorr</bpmn:incoming>
+      <bpmn:outgoing>Flow_awaitcorr_catchcorr</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:intermediateCatchEvent id="Catch_Correction" name="Await SupportCorrection">
+      <bpmn:incoming>Flow_awaitcorr_catchcorr</bpmn:incoming>
+      <bpmn:outgoing>Flow_catchcorr_validate</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_Correction" messageRef="Message_SupportCorrection" />
+    </bpmn:intermediateCatchEvent>
+
+    <!-- =================== Payment loop (INVALID_PAYMENT) ================= -->
+    <bpmn:boundaryEvent id="Bnd_InvalidPayment" name="INVALID_PAYMENT" attachedToRef="Task_ValidatePayment">
+      <bpmn:outgoing>Flow_bnd_catchpay</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="EED_InvalidPayment" errorRef="Error_InvalidPayment" />
+    </bpmn:boundaryEvent>
+
+    <!-- ======================= Sequence flows ============================ -->
+    <bpmn:sequenceFlow id="Flow_start_received" sourceRef="StartEvent_1" targetRef="Task_UpdateReceived" />
+    <bpmn:sequenceFlow id="Flow_received_validate" sourceRef="Task_UpdateReceived" targetRef="Task_ValidateOrder" />
+    <bpmn:sequenceFlow id="Flow_validate_pending" sourceRef="Task_ValidateOrder" targetRef="Task_UpdatePaymentPending" />
+    <bpmn:sequenceFlow id="Flow_pending_catchpay" sourceRef="Task_UpdatePaymentPending" targetRef="Catch_Payment" />
+    <bpmn:sequenceFlow id="Flow_catchpay_validatepay" sourceRef="Catch_Payment" targetRef="Task_ValidatePayment" />
+    <bpmn:sequenceFlow id="Flow_validatepay_captured" sourceRef="Task_ValidatePayment" targetRef="Task_UpdateCaptured" />
+    <bpmn:sequenceFlow id="Flow_captured_enrich" sourceRef="Task_UpdateCaptured" targetRef="Task_Enrich" />
+    <bpmn:sequenceFlow id="Flow_enrich_publish" sourceRef="Task_Enrich" targetRef="Task_Publish" />
+    <bpmn:sequenceFlow id="Flow_publish_fulfilled" sourceRef="Task_Publish" targetRef="Task_UpdateFulfilled" />
+    <bpmn:sequenceFlow id="Flow_fulfilled_end" sourceRef="Task_UpdateFulfilled" targetRef="EndEvent_Done" />
+    <bpmn:sequenceFlow id="Flow_bnd_awaitcorr" sourceRef="Bnd_InvalidOrder" targetRef="Task_AwaitCorrectionStatus" />
+    <bpmn:sequenceFlow id="Flow_awaitcorr_catchcorr" sourceRef="Task_AwaitCorrectionStatus" targetRef="Catch_Correction" />
+    <bpmn:sequenceFlow id="Flow_catchcorr_validate" sourceRef="Catch_Correction" targetRef="Task_ValidateOrder" />
+    <bpmn:sequenceFlow id="Flow_bnd_catchpay" sourceRef="Bnd_InvalidPayment" targetRef="Catch_Payment" />
+
+    <!-- ============ Cancel: interrupting message event subprocess ========= -->
+    <bpmn:subProcess id="SubProcess_Cancel" name="Cancellation" triggeredByEvent="true">
+      <bpmn:startEvent id="Start_Cancel" name="CancelOrder" isInterrupting="true">
+        <bpmn:outgoing>Flow_cancel_1</bpmn:outgoing>
+        <bpmn:messageEventDefinition id="MED_Cancel" messageRef="Message_CancelOrder" />
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="Task_UpdateCancelled" name="Dashboard: CANCELLED">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="update-dashboard" />
+          <zeebe:taskHeaders>
+            <zeebe:header key="status" value="CANCELLED" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_cancel_1</bpmn:incoming>
+        <bpmn:outgoing>Flow_cancel_2</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:endEvent id="End_Cancelled" name="Cancelled">
+        <bpmn:incoming>Flow_cancel_2</bpmn:incoming>
+        <bpmn:terminateEventDefinition id="TED_Cancel" />
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_cancel_1" sourceRef="Start_Cancel" targetRef="Task_UpdateCancelled" />
+      <bpmn:sequenceFlow id="Flow_cancel_2" sourceRef="Task_UpdateCancelled" targetRef="End_Cancelled" />
+    </bpmn:subProcess>
+
+    <!-- ============ TTL: interrupting timer event subprocess (30 days) ===== -->
+    <bpmn:subProcess id="SubProcess_TTL" name="Order TTL (30 days)" triggeredByEvent="true">
+      <bpmn:startEvent id="Start_TTL" name="30-day TTL" isInterrupting="true">
+        <bpmn:outgoing>Flow_ttl_1</bpmn:outgoing>
+        <bpmn:timerEventDefinition id="TED_TTL">
+          <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT720H</bpmn:timeDuration>
+        </bpmn:timerEventDefinition>
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="Task_UpdateExpired" name="Dashboard: EXPIRED">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="update-dashboard" />
+          <zeebe:taskHeaders>
+            <zeebe:header key="status" value="EXPIRED" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_ttl_1</bpmn:incoming>
+        <bpmn:outgoing>Flow_ttl_2</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:endEvent id="End_Expired" name="Expired">
+        <bpmn:incoming>Flow_ttl_2</bpmn:incoming>
+        <bpmn:terminateEventDefinition id="TED_Expired" />
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_ttl_1" sourceRef="Start_TTL" targetRef="Task_UpdateExpired" />
+      <bpmn:sequenceFlow id="Flow_ttl_2" sourceRef="Task_UpdateExpired" targetRef="End_Expired" />
+    </bpmn:subProcess>
+
+  </bpmn:process>
+
+  <!-- ============================= Diagram =============================== -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="order-processing">
+
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="160" y="159" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="146" y="202" width="66" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_UpdateReceived_di" bpmnElement="Task_UpdateReceived">
+        <dc:Bounds x="240" y="137" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ValidateOrder_di" bpmnElement="Task_ValidateOrder">
+        <dc:Bounds x="400" y="137" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Bnd_InvalidOrder_di" bpmnElement="Bnd_InvalidOrder">
+        <dc:Bounds x="437" y="199" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="420" y="242" width="72" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_UpdatePaymentPending_di" bpmnElement="Task_UpdatePaymentPending">
+        <dc:Bounds x="560" y="137" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Catch_Payment_di" bpmnElement="Catch_Payment">
+        <dc:Bounds x="722" y="159" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="700" y="202" width="82" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ValidatePayment_di" bpmnElement="Task_ValidatePayment">
+        <dc:Bounds x="810" y="137" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Bnd_InvalidPayment_di" bpmnElement="Bnd_InvalidPayment">
+        <dc:Bounds x="847" y="199" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="828" y="242" width="80" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_UpdateCaptured_di" bpmnElement="Task_UpdateCaptured">
+        <dc:Bounds x="970" y="137" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Enrich_di" bpmnElement="Task_Enrich">
+        <dc:Bounds x="1130" y="137" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Publish_di" bpmnElement="Task_Publish">
+        <dc:Bounds x="1290" y="137" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_UpdateFulfilled_di" bpmnElement="Task_UpdateFulfilled">
+        <dc:Bounds x="1450" y="137" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_Done_di" bpmnElement="EndEvent_Done">
+        <dc:Bounds x="1612" y="159" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1596" y="202" width="70" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_AwaitCorrectionStatus_di" bpmnElement="Task_AwaitCorrectionStatus">
+        <dc:Bounds x="400" y="300" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Catch_Correction_di" bpmnElement="Catch_Correction">
+        <dc:Bounds x="562" y="322" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="540" y="365" width="82" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="SubProcess_Cancel_di" bpmnElement="SubProcess_Cancel" isExpanded="true">
+        <dc:Bounds x="240" y="440" width="440" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_Cancel_di" bpmnElement="Start_Cancel">
+        <dc:Bounds x="280" y="497" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="270" y="540" width="60" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_UpdateCancelled_di" bpmnElement="Task_UpdateCancelled">
+        <dc:Bounds x="370" y="475" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Cancelled_di" bpmnElement="End_Cancelled">
+        <dc:Bounds x="540" y="497" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="534" y="540" width="50" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="SubProcess_TTL_di" bpmnElement="SubProcess_TTL" isExpanded="true">
+        <dc:Bounds x="740" y="440" width="440" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_TTL_di" bpmnElement="Start_TTL">
+        <dc:Bounds x="780" y="497" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="770" y="540" width="60" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_UpdateExpired_di" bpmnElement="Task_UpdateExpired">
+        <dc:Bounds x="870" y="475" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Expired_di" bpmnElement="End_Expired">
+        <dc:Bounds x="1040" y="497" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1036" y="540" width="44" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_start_received_di" bpmnElement="Flow_start_received">
+        <di:waypoint x="196" y="177" /><di:waypoint x="240" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_received_validate_di" bpmnElement="Flow_received_validate">
+        <di:waypoint x="350" y="177" /><di:waypoint x="400" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_validate_pending_di" bpmnElement="Flow_validate_pending">
+        <di:waypoint x="510" y="177" /><di:waypoint x="560" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_pending_catchpay_di" bpmnElement="Flow_pending_catchpay">
+        <di:waypoint x="670" y="177" /><di:waypoint x="722" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_catchpay_validatepay_di" bpmnElement="Flow_catchpay_validatepay">
+        <di:waypoint x="758" y="177" /><di:waypoint x="810" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_validatepay_captured_di" bpmnElement="Flow_validatepay_captured">
+        <di:waypoint x="920" y="177" /><di:waypoint x="970" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_captured_enrich_di" bpmnElement="Flow_captured_enrich">
+        <di:waypoint x="1080" y="177" /><di:waypoint x="1130" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_enrich_publish_di" bpmnElement="Flow_enrich_publish">
+        <di:waypoint x="1240" y="177" /><di:waypoint x="1290" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_publish_fulfilled_di" bpmnElement="Flow_publish_fulfilled">
+        <di:waypoint x="1400" y="177" /><di:waypoint x="1450" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_fulfilled_end_di" bpmnElement="Flow_fulfilled_end">
+        <di:waypoint x="1560" y="177" /><di:waypoint x="1612" y="177" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bnd_awaitcorr_di" bpmnElement="Flow_bnd_awaitcorr">
+        <di:waypoint x="455" y="235" /><di:waypoint x="455" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_awaitcorr_catchcorr_di" bpmnElement="Flow_awaitcorr_catchcorr">
+        <di:waypoint x="510" y="340" /><di:waypoint x="562" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_catchcorr_validate_di" bpmnElement="Flow_catchcorr_validate">
+        <di:waypoint x="580" y="322" /><di:waypoint x="580" y="240" /><di:waypoint x="455" y="240" /><di:waypoint x="455" y="217" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_bnd_catchpay_di" bpmnElement="Flow_bnd_catchpay">
+        <di:waypoint x="865" y="235" /><di:waypoint x="865" y="270" /><di:waypoint x="740" y="270" /><di:waypoint x="740" y="195" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_cancel_1_di" bpmnElement="Flow_cancel_1">
+        <di:waypoint x="316" y="515" /><di:waypoint x="370" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_cancel_2_di" bpmnElement="Flow_cancel_2">
+        <di:waypoint x="480" y="515" /><di:waypoint x="540" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ttl_1_di" bpmnElement="Flow_ttl_1">
+        <di:waypoint x="816" y="515" /><di:waypoint x="870" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ttl_2_di" bpmnElement="Flow_ttl_2">
+        <di:waypoint x="980" y="515" /><di:waypoint x="1040" y="515" />
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

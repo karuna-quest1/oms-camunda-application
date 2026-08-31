@@ -1,0 +1,31 @@
+# Runs the OMS app (REST gateway + job workers) against the already-running
+# Camunda 8 estate in ../docker-compose-8, whose Zeebe service is "orchestration"
+# on the external Docker network named "camunda".
+#
+#   1. Start the estate first:   (in docker-compose-8) docker compose up -d
+#   2. Then start this app:       docker compose up --build
+#
+# The app auto-deploys models/order-processing.bpmn on startup and serves the
+# REST API on http://localhost:8090. Watch instances in Operate (estate UI).
+services:
+  oms-app:
+    build: .
+    container_name: oms-camunda-app
+    ports:
+      - "8090:8090"
+    environment:
+      ZEEBE_GRPC_ADDRESS: http://orchestration:26500
+      ZEEBE_REST_ADDRESS: http://orchestration:8080
+      CAMUNDA_AUTH_METHOD: none
+      HTTP_PORT: "8090"
+      # Defaults to embedded H2. To use PostgreSQL instead, set e.g.:
+      # DASHBOARD_DB_URL: jdbc:postgresql://postgres:5432/oms
+      # DASHBOARD_DB_USER: oms
+      # DASHBOARD_DB_PASSWORD: oms
+    networks:
+      - camunda
+
+networks:
+  camunda:
+    external: true
+    name: camunda

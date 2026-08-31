@@ -1,0 +1,35 @@
+server:
+  # REST gateway port (parallels HTTP_ADDR=:8090 in the Temporal app).
+  port: ${HTTP_PORT:8090}
+
+spring:
+  datasource:
+    # Dashboard read model. Defaults to an embedded H2 database so the app is
+    # self-contained; point at PostgreSQL in production, e.g.
+    #   DASHBOARD_DB_URL=jdbc:postgresql://localhost:5432/oms
+    url: ${DASHBOARD_DB_URL:jdbc:h2:mem:oms;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE}
+    username: ${DASHBOARD_DB_USER:sa}
+    password: ${DASHBOARD_DB_PASSWORD:}
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+
+camunda:
+  client:
+    mode: self-managed
+    # Points at the running Camunda 8 estate (docker-compose-8). Override for
+    # Camunda Cloud/SaaS by switching mode to saas and supplying credentials.
+    grpc-address: ${ZEEBE_GRPC_ADDRESS:http://localhost:26500}
+    rest-address: ${ZEEBE_REST_ADDRESS:http://localhost:8088}
+    auth:
+      method: ${CAMUNDA_AUTH_METHOD:none}   # none | oidc | basic
+      client-id: ${CAMUNDA_CLIENT_ID:orchestration}
+      client-secret: ${CAMUNDA_CLIENT_SECRET:secret}
+      token-url: ${CAMUNDA_OAUTH_TOKEN_URL:http://localhost:18080/auth/realms/camunda-platform/protocol/openid-connect/token}
+      audience: ${CAMUNDA_TOKEN_AUDIENCE:orchestration-api}
+    # The BPMN model is auto-deployed on startup via @Deployment on OmsApplication.
+
+logging:
+  level:
+    com.oms: INFO
