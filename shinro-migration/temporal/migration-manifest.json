@@ -1,0 +1,183 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "migration-manifest",
+  "mode": "agentic",
+  "counts": {
+    "generated": 11,
+    "manual": 16,
+    "pending": 0
+  },
+  "units": [
+    {
+      "id": "process:order-processing",
+      "name": "Migrate process `order-processing`",
+      "type": "task",
+      "file": "",
+      "status": "generated"
+    },
+    {
+      "id": "uncovered:account-closure",
+      "name": "Uncovered process `account-closure` — document in MIGRATION.md (manual; no code in this repo)",
+      "type": "task",
+      "file": "",
+      "status": "review-stop"
+    },
+    {
+      "id": "uncovered:base-rate-change-broadcast",
+      "name": "Uncovered process `base-rate-change-broadcast` — document in MIGRATION.md (manual; no code in this repo)",
+      "type": "task",
+      "file": "",
+      "status": "review-stop"
+    },
+    {
+      "id": "uncovered:complaint-handling",
+      "name": "Uncovered process `complaint-handling` — document in MIGRATION.md (manual; no code in this repo)",
+      "type": "task",
+      "file": "",
+      "status": "review-stop"
+    },
+    {
+      "id": "uncovered:credit-bureau-assessment",
+      "name": "Uncovered process `credit-bureau-assessment` — document in MIGRATION.md (manual; no code in this repo)",
+      "type": "task",
+      "file": "",
+      "status": "review-stop"
+    },
+    {
+      "id": "uncovered:customer-onboarding-kyc",
+      "name": "Uncovered process `customer-onboarding-kyc` — document in MIGRATION.md (manual; no code in this repo)",
+      "type": "task",
+      "file": "",
+      "status": "review-stop"
+    },
+    {
+      "id": "uncovered:document-collection",
+      "name": "Uncovered process `document-collection` — document in MIGRATION.md (manual; no code in this repo)",
+      "type": "task",
+      "file": "",
+      "status": "review-stop"
+    },
+    {
+      "id": "uncovered:fund-disbursement",
+      "name": "Uncovered process `fund-disbursement` — document in MIGRATION.md (manual; no code in this repo)",
+      "type": "task",
+      "file": "",
+      "status": "review-stop"
+    },
+    {
+      "id": "uncovered:fx-settlement",
+      "name": "Uncovered process `fx-settlement` — document in MIGRATION.md (manual; no code in this repo)",
+      "type": "task",
+      "file": "",
+      "status": "review-stop"
+    },
+    {
+      "id": "uncovered:identity-verification",
+      "name": "Uncovered process `identity-verification` — document in MIGRATION.md (manual; no code in this repo)",
+      "type": "task",
+      "file": "",
+      "status": "review-stop"
+    },
+    {
+      "id": "uncovered:loan-application",
+      "name": "Uncovered process `loan-application` — document in MIGRATION.md (manual; no code in this repo)",
+      "type": "task",
+      "file": "",
+      "status": "review-stop"
+    },
+    {
+      "id": "uncovered:payment-instruction",
+      "name": "Uncovered process `payment-instruction` — document in MIGRATION.md (manual; no code in this repo)",
+      "type": "task",
+      "file": "",
+      "status": "review-stop"
+    },
+    {
+      "id": "uncovered:property-valuation-scheduling",
+      "name": "Uncovered process `property-valuation-scheduling` — document in MIGRATION.md (manual; no code in this repo)",
+      "type": "task",
+      "file": "",
+      "status": "review-stop"
+    },
+    {
+      "id": "uncovered:rate-change-notification",
+      "name": "Uncovered process `rate-change-notification` — document in MIGRATION.md (manual; no code in this repo)",
+      "type": "task",
+      "file": "",
+      "status": "review-stop"
+    },
+    {
+      "id": "uncovered:regulatory-reporting-batch",
+      "name": "Uncovered process `regulatory-reporting-batch` — document in MIGRATION.md (manual; no code in this repo)",
+      "type": "task",
+      "file": "",
+      "status": "review-stop"
+    },
+    {
+      "id": "uncovered:sanctions-screening",
+      "name": "Uncovered process `sanctions-screening` — document in MIGRATION.md (manual; no code in this repo)",
+      "type": "task",
+      "file": "",
+      "status": "review-stop"
+    },
+    {
+      "id": "uncovered:underwriting-review",
+      "name": "Uncovered process `underwriting-review` — document in MIGRATION.md (manual; no code in this repo)",
+      "type": "task",
+      "file": "",
+      "status": "review-stop"
+    },
+    {
+      "id": "final:verify",
+      "name": "Final `go build ./... && go vet ./... && go test ./...` and migration-manifest.json",
+      "type": "task",
+      "file": "",
+      "status": "generated"
+    }
+  ],
+  "agentStats": {
+    "turns": 63,
+    "toolCalls": 93,
+    "finished": true,
+    "reason": "tasks-complete",
+    "buildOk": true,
+    "testsOk": true
+  },
+  "manualWork": [
+    "Uncovered process `account-closure` — document in MIGRATION.md (manual; no code in this repo)",
+    "Uncovered process `base-rate-change-broadcast` — document in MIGRATION.md (manual; no code in this repo)",
+    "Uncovered process `complaint-handling` — document in MIGRATION.md (manual; no code in this repo)",
+    "Uncovered process `credit-bureau-assessment` — document in MIGRATION.md (manual; no code in this repo)",
+    "Uncovered process `customer-onboarding-kyc` — document in MIGRATION.md (manual; no code in this repo)",
+    "Uncovered process `document-collection` — document in MIGRATION.md (manual; no code in this repo)",
+    "Uncovered process `fund-disbursement` — document in MIGRATION.md (manual; no code in this repo)",
+    "Uncovered process `fx-settlement` — document in MIGRATION.md (manual; no code in this repo)",
+    "Uncovered process `identity-verification` — document in MIGRATION.md (manual; no code in this repo)",
+    "Uncovered process `loan-application` — document in MIGRATION.md (manual; no code in this repo)",
+    "Uncovered process `payment-instruction` — document in MIGRATION.md (manual; no code in this repo)",
+    "Uncovered process `property-valuation-scheduling` — document in MIGRATION.md (manual; no code in this repo)",
+    "Uncovered process `rate-change-notification` — document in MIGRATION.md (manual; no code in this repo)",
+    "Uncovered process `regulatory-reporting-batch` — document in MIGRATION.md (manual; no code in this repo)",
+    "Uncovered process `sanctions-screening` — document in MIGRATION.md (manual; no code in this repo)",
+    "Uncovered process `underwriting-review` — document in MIGRATION.md (manual; no code in this repo)"
+  ],
+  "uncoveredProcesses": [
+    "account-closure",
+    "base-rate-change-broadcast",
+    "complaint-handling",
+    "credit-bureau-assessment",
+    "customer-onboarding-kyc",
+    "document-collection",
+    "fund-disbursement",
+    "fx-settlement",
+    "identity-verification",
+    "loan-application",
+    "payment-instruction",
+    "property-valuation-scheduling",
+    "rate-change-notification",
+    "regulatory-reporting-batch",
+    "sanctions-screening",
+    "underwriting-review"
+  ],
+  "generatedAt": "2026-09-10T06:12:05.896Z"
+}

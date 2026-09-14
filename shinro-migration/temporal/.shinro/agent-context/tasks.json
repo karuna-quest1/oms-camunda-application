@@ -1,0 +1,197 @@
+{
+  "schemaVersion": "1.0.0",
+  "tasks": [
+    {
+      "id": "process:order-processing",
+      "title": "Migrate process `order-processing`",
+      "status": "done",
+      "children": [
+        {
+          "id": "order-processing:activity:enrich-order",
+          "title": "Migrate worker `enrich-order` → Temporal activity",
+          "status": "done",
+          "children": [],
+          "notes": []
+        },
+        {
+          "id": "order-processing:activity:publish-fulfillment",
+          "title": "Migrate worker `publish-fulfillment` → Temporal activity",
+          "status": "done",
+          "children": [],
+          "notes": []
+        },
+        {
+          "id": "order-processing:activity:update-dashboard",
+          "title": "Migrate worker `update-dashboard` → Temporal activity",
+          "status": "done",
+          "children": [],
+          "notes": [
+            "Dashboard repository stubbed; logs only"
+          ]
+        },
+        {
+          "id": "order-processing:activity:validate-order",
+          "title": "Migrate worker `validate-order` → Temporal activity",
+          "status": "done",
+          "children": [],
+          "notes": []
+        },
+        {
+          "id": "order-processing:activity:validate-payment",
+          "title": "Migrate worker `validate-payment` → Temporal activity",
+          "status": "done",
+          "children": [],
+          "notes": []
+        },
+        {
+          "id": "order-processing:workflow",
+          "title": "Write the workflow for process `order-processing` (orchestration, signals, timers, error boundaries)",
+          "status": "done",
+          "children": [],
+          "notes": []
+        },
+        {
+          "id": "order-processing:wire",
+          "title": "Register workflow + activities in the worker wiring (cmd/worker)",
+          "status": "done",
+          "children": [],
+          "notes": []
+        },
+        {
+          "id": "order-processing:test",
+          "title": "Write conformance tests (workflow + activities) for process `order-processing` — testsuite cases from the BPMN flow",
+          "status": "done",
+          "children": [],
+          "notes": []
+        },
+        {
+          "id": "order-processing:build",
+          "title": "Run `go build ./... && go test ./...` and fix every failure",
+          "status": "done",
+          "children": [],
+          "notes": []
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": "uncovered:account-closure",
+      "title": "Uncovered process `account-closure` — document in MIGRATION.md (manual; no code in this repo)",
+      "status": "manual",
+      "children": [],
+      "notes": []
+    },
+    {
+      "id": "uncovered:base-rate-change-broadcast",
+      "title": "Uncovered process `base-rate-change-broadcast` — document in MIGRATION.md (manual; no code in this repo)",
+      "status": "manual",
+      "children": [],
+      "notes": []
+    },
+    {
+      "id": "uncovered:complaint-handling",
+      "title": "Uncovered process `complaint-handling` — document in MIGRATION.md (manual; no code in this repo)",
+      "status": "manual",
+      "children": [],
+      "notes": []
+    },
+    {
+      "id": "uncovered:credit-bureau-assessment",
+      "title": "Uncovered process `credit-bureau-assessment` — document in MIGRATION.md (manual; no code in this repo)",
+      "status": "manual",
+      "children": [],
+      "notes": []
+    },
+    {
+      "id": "uncovered:customer-onboarding-kyc",
+      "title": "Uncovered process `customer-onboarding-kyc` — document in MIGRATION.md (manual; no code in this repo)",
+      "status": "manual",
+      "children": [],
+      "notes": []
+    },
+    {
+      "id": "uncovered:document-collection",
+      "title": "Uncovered process `document-collection` — document in MIGRATION.md (manual; no code in this repo)",
+      "status": "manual",
+      "children": [],
+      "notes": []
+    },
+    {
+      "id": "uncovered:fund-disbursement",
+      "title": "Uncovered process `fund-disbursement` — document in MIGRATION.md (manual; no code in this repo)",
+      "status": "manual",
+      "children": [],
+      "notes": []
+    },
+    {
+      "id": "uncovered:fx-settlement",
+      "title": "Uncovered process `fx-settlement` — document in MIGRATION.md (manual; no code in this repo)",
+      "status": "manual",
+      "children": [],
+      "notes": []
+    },
+    {
+      "id": "uncovered:identity-verification",
+      "title": "Uncovered process `identity-verification` — document in MIGRATION.md (manual; no code in this repo)",
+      "status": "manual",
+      "children": [],
+      "notes": []
+    },
+    {
+      "id": "uncovered:loan-application",
+      "title": "Uncovered process `loan-application` — document in MIGRATION.md (manual; no code in this repo)",
+      "status": "manual",
+      "children": [],
+      "notes": []
+    },
+    {
+      "id": "uncovered:payment-instruction",
+      "title": "Uncovered process `payment-instruction` — document in MIGRATION.md (manual; no code in this repo)",
+      "status": "manual",
+      "children": [],
+      "notes": []
+    },
+    {
+      "id": "uncovered:property-valuation-scheduling",
+      "title": "Uncovered process `property-valuation-scheduling` — document in MIGRATION.md (manual; no code in this repo)",
+      "status": "manual",
+      "children": [],
+      "notes": []
+    },
+    {
+      "id": "uncovered:rate-change-notification",
+      "title": "Uncovered process `rate-change-notification` — document in MIGRATION.md (manual; no code in this repo)",
+      "status": "manual",
+      "children": [],
+      "notes": []
+    },
+    {
+      "id": "uncovered:regulatory-reporting-batch",
+      "title": "Uncovered process `regulatory-reporting-batch` — document in MIGRATION.md (manual; no code in this repo)",
+      "status": "manual",
+      "children": [],
+      "notes": []
+    },
+    {
+      "id": "uncovered:sanctions-screening",
+      "title": "Uncovered process `sanctions-screening` — document in MIGRATION.md (manual; no code in this repo)",
+      "status": "manual",
+      "children": [],
+      "notes": []
+    },
+    {
+      "id": "uncovered:underwriting-review",
+      "title": "Uncovered process `underwriting-review` — document in MIGRATION.md (manual; no code in this repo)",
+      "status": "manual",
+      "children": [],
+      "notes": []
+    },
+    {
+      "id": "final:verify",
+      "title": "Final `go build ./... && go vet ./... && go test ./...` and migration-manifest.json",
+      "status": "done",
+      "children": [],
+      "notes": []
+    }
+  ]
+}

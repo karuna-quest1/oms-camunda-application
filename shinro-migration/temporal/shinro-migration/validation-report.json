@@ -1,0 +1,255 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "codegen-validation-report",
+  "source": {
+    "module": "oms-camunda-quest1",
+    "generatedProject": "/Users/karunanidhi/Playground/oms-camunda-quest1/shinro-migration/temporal",
+    "findingsModule": "oms-camunda-quest1",
+    "manifestProvided": false,
+    "assessmentProvided": true,
+    "mode": "code-only",
+    "targetLanguage": "go",
+    "validatedAt": "2026-09-10T06:13:38Z",
+    "validatorVersion": "0.1.0"
+  },
+  "summary": {
+    "findings": 18,
+    "errors": 0,
+    "warnings": 5,
+    "infos": 13,
+    "workersInSource": 5,
+    "mappingsChecked": 0,
+    "coverageGaps": 0,
+    "lowConfidenceFindings": 17,
+    "reviewFindings": 17,
+    "verdict": "pass"
+  },
+  "findings": [
+    {
+      "pass": "A",
+      "code": "no-manifest",
+      "severity": "info",
+      "summary": "no mapping manifest provided and no program model to reconstruct one; coverage can only be checked against the generated code, not the generator's declared intent"
+    },
+    {
+      "pass": "R",
+      "code": "activity-granularity",
+      "severity": "warn",
+      "summary": "UpdateDashboard activity is non-fatal but called synchronously multiple times, adding latency",
+      "location": {
+        "file": "workflows/order_processing.go",
+        "line": 72
+      },
+      "detail": "[medium] UpdateDashboard is marked best-effort (lines 76, 99, 129, 176, 203, 223, 242) but executed synchronously with a 10-minute timeout. If dashboard updates are truly non-critical, consider making them fire-and-forget (async invoke without waiting), or batch them into a single update at the end. Alternatively, use a local activity if updates are very fast and you want lower history growth.",
+      "provenance": "llm",
+      "confidence": 0.75
+    },
+    {
+      "pass": "R",
+      "code": "activity-idempotency",
+      "severity": "info",
+      "summary": "EnrichOrder modifies order items but does not guarantee idempotency if SKU/Brand lookups are non-deterministic",
+      "location": {
+        "file": "activities/enrich_order.go",
+        "line": 19
+      },
+      "detail": "[low] EnrichOrder generates SKU and BrandCode from item metadata (lines 28, 32). If a real PIM lookup is later integrated and returns different values on retry (e.g., due to cache invalidation or data updates), retries may produce inconsistent results. Ensure SKU/Brand lookups are versioned or use a deterministic fallback. Document that the activity must return the same enrichment for the same input.",
+      "provenance": "llm",
+      "confidence": 0.6
+    },
+    {
+      "pass": "R",
+      "code": "activity-idempotency",
+      "severity": "warn",
+      "summary": "PublishFulfillment activity publishes messages without explicit idempotency key enforcement",
+      "location": {
+        "file": "activities/publish_fulfillment.go",
+        "line": 31
+      },
+      "detail": "[high] The activity generates an eventId (line 36) but only logs the message. If a real message broker is integrated, ensure the publisher uses the eventId as an idempotency key and that the broker supports deduplication. Document that consumers must deduplicate on eventId (already noted in comments, line 53), and implement idempotency protection when the real publisher is added. Consider using the activity's attempt number or workflow execution ID in the eventId to ensure uniqueness across retries.",
+      "provenance": "llm",
+      "confidence": 0.85
+    },
+    {
+      "pass": "R",
+      "code": "activity-idempotency",
+      "severity": "warn",
+      "summary": "UpdateDashboard activity logs but does not implement real idempotent writes",
+      "location": {
+        "file": "activities/update_dashboard.go",
+        "line": 21
+      },
+      "detail": "[medium] The activity is marked as 'idempotent-with-key' in the source metadata but currently only logs (line 37). When a real DashboardRepository is integrated, ensure writes use the orderId + status as a composite key or timestamp-based upsert to guarantee idempotency across retries. Document the idempotency contract clearly.",
+      "provenance": "llm",
+      "confidence": 0.8
+    },
+    {
+      "pass": "R",
+      "code": "activity-timeout",
+      "severity": "info",
+      "summary": "StartToCloseTimeout of 10 minutes may be too long for read-only activities",
+      "location": {
+        "file": "workflows/order_processing.go",
+        "line": 22
+      },
+      "detail": "[low] Activities marked 'read-only' (ValidateOrder, ValidatePayment, EnrichOrder) are unlikely to take 10 minutes. Consider using activity-specific timeouts: 30 seconds for validation, 1-2 minutes for enrichment, and longer timeouts only for PublishFulfillment if the message broker is slow. This improves failure detection latency.",
+      "provenance": "llm",
+      "confidence": 0.6
+    },
+    {
+      "pass": "R",
+      "code": "retry-policy",
+      "severity": "warn",
+      "summary": "Global retry policy MaximumAttempts=3 may be too aggressive for transient failures in some activities",
+      "location": {
+        "file": "workflows/order_processing.go",
+        "line": 23
+      },
+      "detail": "[medium] The workflow applies MaximumAttempts=3 to all activities (line 24). For activities like EnrichOrder and PublishFulfillment that may experience transient downstream failures, 3 attempts may be insufficient. Consider setting activity-specific retry policies, especially for side-effecting activities (PublishFulfillment, UpdateDashboard). For read-only activities (ValidateOrder, ValidatePayment, EnrichOrder), 3 attempts may be acceptable if failures are rare.",
+      "provenance": "llm",
+      "confidence": 0.65
+    },
+    {
+      "pass": "R",
+      "code": "signal-handling",
+      "severity": "info",
+      "summary": "Signal channels are not drained before workflow completion; pending signals may be lost",
+      "location": {
+        "file": "workflows/order_processing.go",
+        "line": 250
+      },
+      "detail": "[low] If multiple signals arrive (e.g., correction + cancel), the selector may only process one before workflowComplete is set. Pending signals on correctionCh or captureCh are not drained. If this is intentional (signals after completion are ignored), document it. Otherwise, ensure all pending signals are processed or explicitly rejected before returning.",
+      "provenance": "llm",
+      "confidence": 0.6
+    },
+    {
+      "pass": "R",
+      "code": "testing",
+      "severity": "info",
+      "summary": "Workflow tests are placeholder stubs; no integration tests for signal handling or replay",
+      "location": {
+        "file": "workflows/order_processing_test.go",
+        "line": 13
+      },
+      "detail": "[info] The workflow tests (lines 13-67) only verify compilation and registration. Add integration tests using testsuite.WorkflowTestSuite that mock activities and send signals to verify correction loops, payment validation, cancellation, and TTL expiration. Add replay tests using workflow.Replayer to ensure changes are replay-safe. (could not confirm the cited file in the generated project)",
+      "provenance": "llm",
+      "confidence": 1
+    },
+    {
+      "pass": "R",
+      "code": "versioning",
+      "severity": "info",
+      "summary": "No versioning strategy or GetVersion calls present; document workflow evolution plan",
+      "location": {
+        "file": "workflows/order_processing.go"
+      },
+      "detail": "[info] The workflow has no workflow.GetVersion calls. Before making logic changes (e.g., adding activities, changing signal handling), add versioning markers. Document the versioning strategy: use worker build IDs for simple changes, or use workflow.GetVersion for complex branching. Plan to remove old versions after retention period.",
+      "provenance": "llm",
+      "confidence": 0.9
+    },
+    {
+      "pass": "R",
+      "code": "workflow-cancellation",
+      "severity": "info",
+      "summary": "Cancel signal handler does not propagate cancellation to the main flow goroutine",
+      "location": {
+        "file": "workflows/order_processing.go",
+        "line": 210
+      },
+      "detail": "[high] When the cancel signal is received (line 210), the workflow sets workflowComplete=true and returns, but the main flow goroutine may still be blocked on a signal receive (lines 104 or 138) or activity execution. Use workflow.WithCancel and cancel the context when the cancel signal arrives, ensuring activities and signal waits are interrupted gracefully. Otherwise, the workflow may hang or complete inconsistently. (not corroborated by the deterministic analysis (advisory only — the AST passes are authoritative on determinism/concurrency))",
+      "provenance": "llm",
+      "confidence": 0.9
+    },
+    {
+      "pass": "R",
+      "code": "workflow-determinism",
+      "severity": "info",
+      "summary": "Defer/recover in workflow goroutine may not behave as expected on replay",
+      "location": {
+        "file": "workflows/order_processing.go",
+        "line": 63
+      },
+      "detail": "[medium] The defer/recover pattern (lines 63-69) attempts to catch panics in the workflow goroutine. However, workflow.Go panics are not typical; they usually indicate programmer error. On replay, the panic may not occur or may occur at a different point. Remove the recover or ensure it only catches non-deterministic errors during development. In production, panics should not be caught—they indicate a bug that must be fixed. (not corroborated by the deterministic analysis (advisory only — the AST passes are authoritative on determinism/concurrency))",
+      "provenance": "llm",
+      "confidence": 0.7
+    },
+    {
+      "pass": "R",
+      "code": "workflow-determinism",
+      "severity": "info",
+      "summary": "Race condition between main flow goroutine and signal handlers on workflowComplete flag",
+      "location": {
+        "file": "workflows/order_processing.go",
+        "line": 58
+      },
+      "detail": "[critical] The workflowComplete boolean is set by the main goroutine (line 68) and checked by signal handlers (lines 211, 232). This creates a race condition during replay. Temporal workflows must be deterministic; use workflow.Channel or workflow.Selector correctly without relying on shared mutable state across goroutines. Refactor to use a single control flow or explicit channels for synchronization. (not corroborated by the deterministic analysis (advisory only — the AST passes are authoritative on determinism/concurrency))",
+      "provenance": "llm",
+      "confidence": 0.9
+    },
+    {
+      "pass": "R",
+      "code": "workflow-determinism",
+      "severity": "info",
+      "summary": "Selector.Select loop with signal handlers that may never trigger causes non-deterministic workflow completion",
+      "location": {
+        "file": "workflows/order_processing.go",
+        "line": 250
+      },
+      "detail": "[critical] The selector loop waits for cancel or TTL events, but the main flow goroutine may complete first without setting workflowComplete atomically visible to the selector. Use workflow.Await or refactor signal handlers to be processed inline within the main flow goroutine, ensuring deterministic execution order on replay. Consider using workflow.GetSignalChannel().ReceiveAsync() or explicit state-driven logic instead of concurrent selector patterns. (not corroborated by the deterministic analysis (advisory only — the AST passes are authoritative on determinism/concurrency))",
+      "provenance": "llm",
+      "confidence": 0.95
+    },
+    {
+      "pass": "R",
+      "code": "workflow-determinism",
+      "severity": "info",
+      "summary": "Signal receive operations inside nested loops may cause replay issues if signals are delivered out of order",
+      "location": {
+        "file": "workflows/order_processing.go",
+        "line": 104
+      },
+      "detail": "[high] The workflow uses correctionCh.Receive (line 104) and captureCh.Receive (line 138) inside loops within a goroutine while also handling cancelCh via selector. If a cancel signal arrives before correction/capture signals during replay, the execution order may differ. Ensure all signal handling is deterministic by using a single selector or by draining signal channels in a predictable order. Test with replay to verify determinism. (not corroborated by the deterministic analysis (advisory only — the AST passes are authoritative on determinism/concurrency))",
+      "provenance": "llm",
+      "confidence": 0.75
+    },
+    {
+      "pass": "R",
+      "code": "workflow-id-strategy",
+      "severity": "info",
+      "summary": "No workflow ID strategy is defined in starter; document expected uniqueness semantics",
+      "location": {
+        "file": "cmd/starter/main.go",
+        "line": 27
+      },
+      "detail": "[info] The starter has no entry points (line 27). When implementing starters, use order_id as the workflow ID to enforce exactly-once semantics per order. Document the ID reuse policy: reject duplicates (default) or allow reuse after workflow completes. This prevents duplicate order processing.",
+      "provenance": "llm",
+      "confidence": 0.8
+    },
+    {
+      "pass": "R",
+      "code": "workflow-state-size",
+      "severity": "info",
+      "summary": "Workflow holds full order and payment data in memory; verify payload sizes are reasonable",
+      "location": {
+        "file": "workflows/order_processing.go",
+        "line": 33
+      },
+      "detail": "[low] The workflow stores the full order (line 33) and payment (line 42) in workflow state. If orders contain hundreds of items or large metadata, history size may grow. Monitor payload sizes and consider passing large data by reference (e.g., S3 keys) if order size exceeds a few KB. For typical OMS use cases with <100 items, this is likely acceptable.",
+      "provenance": "llm",
+      "confidence": 0.5
+    },
+    {
+      "pass": "R",
+      "code": "workflow-timeout",
+      "severity": "warn",
+      "summary": "No workflow execution timeout set; workflow may run indefinitely if main flow blocks unexpectedly",
+      "location": {
+        "file": "workflows/order_processing.go",
+        "line": 20
+      },
+      "detail": "[medium] The workflow has a 30-day TTL timer (line 52) but no workflow execution timeout configured. If the main flow goroutine blocks indefinitely (e.g., due to a bug in signal handling), the workflow will remain open until the TTL expires. Set a WorkflowExecutionTimeout (e.g., 31 days) as a backstop in the starter or worker options to ensure the workflow cannot exceed the expected maximum duration.",
+      "provenance": "llm",
+      "confidence": 0.7
+    }
+  ]
+}
