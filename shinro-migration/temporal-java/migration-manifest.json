@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "migration-manifest",
+  "mode": "agentic",
+  "counts": {
+    "generated": 13,
+    "manual": 0,
+    "pending": 0
+  },
+  "units": [
+    {
+      "id": "setup",
+      "name": "Create the Temporal Java project skeleton (pom.xml, package layout, worker main)",
+      "type": "task",
+      "file": "",
+      "status": "generated"
+    },
+    {
+      "id": "process:order-processing",
+      "name": "Migrate process `order-processing`",
+      "type": "task",
+      "file": "",
+      "status": "generated"
+    },
+    {
+      "id": "final:verify",
+      "name": "Final `mvn -q -B -DskipTests compile && mvn -q -B test` and migration-manifest.json",
+      "type": "task",
+      "file": "",
+      "status": "generated"
+    },
+    {
+      "id": "final:mapping-manifest",
+      "name": "Emit codegen-mapping-manifest.json in the project root — one row per worker/element/decision/workflow → its Java symbol, plus decisions & gaps — so the validator can check coverage and fidelity",
+      "type": "task",
+      "file": "",
+      "status": "generated"
+    }
+  ],
+  "agentStats": {
+    "turns": 66,
+    "toolCalls": 65,
+    "finished": true,
+    "reason": "tasks-complete",
+    "buildOk": true,
+    "testsOk": true
+  },
+  "manualWork": [],
+  "uncoveredProcesses": [],
+  "generatedAt": "2026-10-01T08:57:18.653Z"
+}

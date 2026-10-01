@@ -1,0 +1,210 @@
+{
+  "source": {
+    "mode": "review-only",
+    "targetLanguage": "java",
+    "llm": {
+      "used": true
+    }
+  },
+  "summary": {
+    "verdict": "fail",
+    "findings": 17,
+    "errors": 4,
+    "warnings": 3,
+    "infos": 10,
+    "coverageGaps": 0,
+    "reviewFindings": 17
+  },
+  "findings": [
+    {
+      "pass": "R",
+      "code": "workflow-determinism",
+      "severity": "critical",
+      "summary": "Infinite loop with `Workflow.await(() -> false)` will block workflow execution indefinitely",
+      "detail": "Replace `Workflow.await(() -> false)` with a proper signal handler. Define a signal method to receive order corrections, store the correction data in workflow state, and use `Workflow.await(() -> correctionReceived)` where `correctionReceived` is a boolean field updated by the signal handler.",
+      "location": {
+        "file": "src/main/java/com/shinro/migration/omscamundaquest1/workflows/OrderProcessingWorkflowImpl.java",
+        "line": 56
+      }
+    },
+    {
+      "pass": "R",
+      "code": "workflow-determinism",
+      "severity": "critical",
+      "summary": "Infinite loop blocks workflow execution waiting for payment signal that is never received",
+      "detail": "Implement a proper signal handler for payment capture. Add a `@SignalMethod` annotated method in the workflow interface and implementation to receive payment data, store it in workflow state, and use `Workflow.await(() -> paymentReceived)` to wait for the signal. Remove the while loop and replace with signal-driven logic.",
+      "location": {
+        "file": "src/main/java/com/shinro/migration/omscamundaquest1/workflows/OrderProcessingWorkflowImpl.java",
+        "line": 69
+      }
+    },
+    {
+      "pass": "R",
+      "code": "workflow-determinism",
+      "severity": "critical",
+      "summary": "Another infinite `Workflow.await(() -> false)` blocks payment retry logic",
+      "detail": "Same as above - implement proper signal handling for payment capture instead of blocking indefinitely.",
+      "location": {
+        "file": "src/main/java/com/shinro/migration/omscamundaquest1/workflows/OrderProcessingWorkflowImpl.java",
+        "line": 72
+      }
+    },
+    {
+      "pass": "R",
+      "code": "workflow-determinism",
+      "severity": "critical",
+      "summary": "Third infinite `Workflow.await(() -> false)` in payment validation error handler blocks workflow",
+      "detail": "Implement signal handler for payment retry and use proper await condition instead of `await(() -> false)`.",
+      "location": {
+        "file": "src/main/java/com/shinro/migration/omscamundaquest1/workflows/OrderProcessingWorkflowImpl.java",
+        "line": 89
+      }
+    },
+    {
+      "pass": "R",
+      "code": "activity-idempotency",
+      "severity": "high",
+      "summary": "UpdateDashboard activity marked as idempotent-with-key but implementation does not use idempotency key",
+      "detail": "The source metadata indicates this activity should use idempotency keys. Implement idempotency by passing a unique idempotency key (e.g., `workflowId + runId + activityTaskQueue + scheduleEventId` or orderId + status + timestamp) to the upsert operation to prevent duplicate dashboard updates on retries.",
+      "location": {
+        "file": "src/main/java/com/shinro/migration/omscamundaquest1/activities/UpdateDashboardActivityImpl.java",
+        "line": 23
+      }
+    },
+    {
+      "pass": "R",
+      "code": "activity-idempotency",
+      "severity": "high",
+      "summary": "PublishFulfillment activity lacks idempotency protection for side-effecting publish operation",
+      "detail": "Publishing to a fulfillment topic/queue is a side-effecting operation that will be retried at-least-once by Temporal. Add idempotency protection: either use the `eventId` (line 26) as an idempotency key in the downstream system, implement deduplication in the publisher, or use a transactional outbox pattern.",
+      "location": {
+        "file": "src/main/java/com/shinro/migration/omscamundaquest1/activities/PublishFulfillmentActivityImpl.java",
+        "line": 21
+      }
+    },
+    {
+      "pass": "R",
+      "code": "error-handling",
+      "severity": "high",
+      "summary": "Dashboard update failures are silently swallowed, potentially hiding operational issues",
+      "detail": "While it may be acceptable for dashboard updates to not fail the workflow, consider using metrics/alerts to track these failures. Alternatively, implement a retry policy with limited attempts before giving up, or use a separate compensation/reconciliation workflow to ensure eventual consistency of dashboard state.",
+      "location": {
+        "file": "src/main/java/com/shinro/migration/omscamundaquest1/activities/UpdateDashboardActivityImpl.java",
+        "line": 31
+      }
+    },
+    {
+      "pass": "R",
+      "code": "signal-design",
+      "severity": "medium",
+      "summary": "No signal or update handlers defined in workflow interface despite workflow waiting for external messages",
+      "detail": "Add `@SignalMethod` annotated methods to the workflow interface for receiving order corrections and payment captures. For example: `@SignalMethod void receiveOrderCorrection(List<OrderItem> correctionItems);` and `@SignalMethod void receivePaymentCapture(PaymentInput payment);`",
+      "location": {
+        "file": "src/main/java/com/shinro/migration/omscamundaquest1/workflows/OrderProcessingWorkflow.java",
+        "line": 8
+      }
+    },
+    {
+      "pass": "R",
+      "code": "retry-policy",
+      "severity": "medium",
+      "summary": "No retry policy specified for activities, relying on SDK defaults which may not match business requirements",
+      "detail": "Explicitly configure retry policies for each activity based on their failure characteristics. For read-only activities (validate-order, enrich-order), configure aggressive retries. For side-effecting activities (publish-fulfillment, update-dashboard), configure conservative retries with appropriate backoff to avoid duplicate actions while idempotency protection is implemented.",
+      "location": {
+        "file": "src/main/java/com/shinro/migration/omscamundaquest1/workflows/OrderProcessingWorkflowImpl.java",
+        "line": 18
+      }
+    },
+    {
+      "pass": "R",
+      "code": "timeout-configuration",
+      "severity": "medium",
+      "summary": "Identical 30-second timeout applied to all activities except UpdateDashboard without justification",
+      "detail": "Review and tune timeout settings per activity based on expected execution time. For example, EnrichOrder (which iterates over items) and PublishFulfillment (which publishes to external systems) may need different timeouts than ValidateOrder. Consider adding ScheduleToStart timeout if worker unavailability detection is important.",
+      "location": {
+        "file": "src/main/java/com/shinro/migration/omscamundaquest1/workflows/OrderProcessingWorkflowImpl.java",
+        "line": 19
+      }
+    },
+    {
+      "pass": "R",
+      "code": "workflow-state-management",
+      "severity": "medium",
+      "summary": "Payment data checked from input map instead of workflow state managed by signal handler",
+      "detail": "Once signal handlers are implemented, store payment data in a workflow field (e.g., `private PaymentInput receivedPayment;`) and check that field instead of checking `input.containsKey(\"payment\")`. The input map should not be mutated during workflow execution.",
+      "location": {
+        "file": "src/main/java/com/shinro/migration/omscamundaquest1/workflows/OrderProcessingWorkflowImpl.java",
+        "line": 78
+      }
+    },
+    {
+      "pass": "R",
+      "code": "payload-size",
+      "severity": "medium",
+      "summary": "Entire order and payment data passed repeatedly through activity invocations",
+      "detail": "For large orders with many items, consider passing only orderId to activities and having activities fetch full order data from a shared data store. This reduces event history size. If orders are typically small (< 100 items), current approach is acceptable.",
+      "location": {
+        "file": "src/main/java/com/shinro/migration/omscamundaquest1/workflows/OrderProcessingWorkflowImpl.java",
+        "line": 45
+      }
+    },
+    {
+      "pass": "R",
+      "code": "workflow-state-management",
+      "severity": "low",
+      "summary": "validatedOrder could be null after exception handling, potentially causing NPE in enrichOrder call",
+      "detail": "After the order correction signal is received and processed, re-invoke validateOrderActivity to populate validatedOrder before calling enrichOrder. The current code path returns early at line 58 when correction is needed, but if that logic changes, validatedOrder could remain null.",
+      "location": {
+        "file": "src/main/java/com/shinro/migration/omscamundaquest1/workflows/OrderProcessingWorkflowImpl.java",
+        "line": 100
+      }
+    },
+    {
+      "pass": "R",
+      "code": "testing",
+      "severity": "low",
+      "summary": "Test implementation is a placeholder and does not verify workflow behavior",
+      "detail": "Implement meaningful tests: (1) happy path with all activities succeeding, (2) order validation failure with correction signal, (3) payment validation failure with retry signal, (4) verify event history does not grow unbounded. Use TestWorkflowEnvironment to mock activities and test signal handling once implemented.",
+      "location": {
+        "file": "src/test/java/com/shinro/migration/omscamundaquest1/OrderProcessingWorkflowTest.java",
+        "line": 48
+      }
+    },
+    {
+      "pass": "R",
+      "code": "worker-topology",
+      "severity": "low",
+      "summary": "Single worker instance provides no high availability",
+      "detail": "For production deployment, run at least two worker instances for high availability. Document this requirement or provide deployment configuration showing multiple worker instances.",
+      "location": {
+        "file": "src/main/java/com/shinro/migration/omscamundaquest1/TemporalWorker.java",
+        "line": 16
+      }
+    },
+    {
+      "pass": "R",
+      "code": "workflow-design",
+      "severity": "info",
+      "summary": "Workflow implements message-driven state machine pattern which is appropriate for order processing",
+      "detail": "This is a good fit for Temporal. The workflow orchestrates a multi-step process with human-in-the-loop corrections, external payment captures, and multiple service integrations. Once signal handlers are properly implemented, this design will be solid.",
+      "location": {
+        "file": "src/main/java/com/shinro/migration/omscamundaquest1/workflows/OrderProcessingWorkflowImpl.java",
+        "line": 15
+      }
+    },
+    {
+      "pass": "R",
+      "code": "activity-design",
+      "severity": "info",
+      "summary": "Read-only activities (validate-order, enrich-order) are naturally idempotent",
+      "detail": "The validate-order and enrich-order activities perform read-only transformations and are inherently idempotent. This is correct design. Focus idempotency efforts on the side-effecting activities (publish-fulfillment, update-dashboard).",
+      "location": {
+        "file": "src/main/java/com/shinro/migration/omscamundaquest1/activities/ValidateOrderActivityImpl.java",
+        "line": 23
+      }
+    }
+  ],
+  "limitations": [
+    "target is Java — the deterministic validator (structural/determinism scan) is Go-only and did not run; only the LLM code review against the Temporal rubric applies to this target."
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "schemaVersion": "1.0.0",
+  "tasks": [
+    {
+      "id": "setup",
+      "title": "Create the Temporal Java project skeleton (pom.xml, package layout, worker main)",
+      "status": "done",
+      "children": [],
+      "notes": []
+    },
+    {
+      "id": "process:order-processing",
+      "title": "Migrate process `order-processing`",
+      "status": "done",
+      "children": [
+        {
+          "id": "order-processing:activity:enrich-order",
+          "title": "Migrate worker `enrich-order` → Temporal activity",
+          "status": "done",
+          "children": [],
+          "notes": []
+        },
+        {
+          "id": "order-processing:activity:publish-fulfillment",
+          "title": "Migrate worker `publish-fulfillment` → Temporal activity",
+          "status": "done",
+          "children": [],
+          "notes": []
+        },
+        {
+          "id": "order-processing:activity:update-dashboard",
+          "title": "Migrate worker `update-dashboard` → Temporal activity",
+          "status": "done",
+          "children": [],
+          "notes": []
+        },
+        {
+          "id": "order-processing:activity:validate-order",
+          "title": "Migrate worker `validate-order` → Temporal activity",
+          "status": "done",
+          "children": [],
+          "notes": []
+        },
+        {
+          "id": "order-processing:activity:validate-payment",
+          "title": "Migrate worker `validate-payment` → Temporal activity",
+          "status": "done",
+          "children": [],
+          "notes": []
+        },
+        {
+          "id": "order-processing:workflow",
+          "title": "Write the workflow for process `order-processing` (orchestration, signals, timers, error boundaries)",
+          "status": "done",
+          "children": [],
+          "notes": []
+        },
+        {
+          "id": "order-processing:wire",
+          "title": "Register workflow + activities in the worker (TemporalWorker main)",
+          "status": "done",
+          "children": [],
+          "notes": []
+        },
+        {
+          "id": "order-processing:test",
+          "title": "Write conformance tests (workflow + activities) for process `order-processing` — testsuite cases from the BPMN flow",
+          "status": "done",
+          "children": [],
+          "notes": []
+        },
+        {
+          "id": "order-processing:build",
+          "title": "Run `mvn -q -B test` and fix every failure",
+          "status": "done",
+          "children": [],
+          "notes": []
+        }
+      ],
+      "notes": [
+        "Migrated all workers and workflow for order-processing. \nCreated activities for validate-order, enrich-order, update-dashboard, validate-payment and publish-fulfillment.\nImplemented workflow orchestration that handles boundary events (INVALID_ORDER / INVALID_PAYMENT) and status updates.\nAll tests are passing.",
+        "Migrated all workers and workflow for order-processing. Created activities for validate-order, enrich-order, update-dashboard, validate-payment and publish-fulfillment. Implemented workflow orchestration that handles boundary events (INVALID_ORDER / INVALID_PAYMENT) and status updates. All tests are passing."
+      ]
+    },
+    {
+      "id": "final:verify",
+      "title": "Final `mvn -q -B -DskipTests compile && mvn -q -B test` and migration-manifest.json",
+      "status": "done",
+      "children": [],
+      "notes": []
+    },
+    {
+      "id": "final:mapping-manifest",
+      "title": "Emit codegen-mapping-manifest.json in the project root — one row per worker/element/decision/workflow → its Java symbol, plus decisions & gaps — so the validator can check coverage and fidelity",
+      "status": "done",
+      "children": [],
+      "notes": []
+    }
+  ]
+}

@@ -1,0 +1,174 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "codegen-mapping-manifest",
+  "source": {
+    "module": "com.shinro.migration.omscamundaquest1",
+    "generatedAt": "2023-10-04T15:00:00Z",
+    "generatorVersion": "shinro-agent"
+  },
+  "target": {
+    "language": "java",
+    "modulePath": "com.shinro.migration.omscamundaquest1",
+    "projectRoot": "."
+  },
+  "mappings": [
+    {
+      "source": {
+        "kind": "worker",
+        "workerId": "worker:oms-camunda-quest1:com.oms.workers.CommerceWorkers#validateOrder",
+        "jobType": "validate-order",
+        "elementId": "validate-order",
+        "processId": "order-processing",
+        "classificationKey": ""
+      },
+      "target": {
+        "construct": "activity",
+        "family": "activity",
+        "symbol": "com.shinro.migration.omscamundaquest1.activities.ValidateOrderActivityImpl#validateOrder",
+        "file": "activities/ValidateOrderActivityImpl.java",
+        "startLine": 27
+      },
+      "decisions": {
+        "sideEffectClass": "read-only",
+        "idempotencyKey": "",
+        "retryPolicy": {
+          "maximumAttempts": 2147483647
+        },
+        "coverageClass": "ASSISTED",
+        "reviewRequired": true
+      },
+      "status": "generated"
+    },
+    {
+      "source": {
+        "kind": "worker",
+        "workerId": "worker:oms-camunda-quest1:com.oms.workers.OmsWorkers#enrichOrder",
+        "jobType": "enrich-order",
+        "elementId": "enrich-order",
+        "processId": "order-processing",
+        "classificationKey": ""
+      },
+      "target": {
+        "construct": "activity",
+        "family": "activity",
+        "symbol": "com.shinro.migration.omscamundaquest1.activities.EnrichOrderActivityImpl#enrichOrder",
+        "file": "activities/EnrichOrderActivityImpl.java",
+        "startLine": 27
+      },
+      "decisions": {
+        "sideEffectClass": "read-only-unverified",
+        "idempotencyKey": "",
+        "retryPolicy": {
+          "maximumAttempts": 2147483647
+        },
+        "coverageClass": "AUTO+FLAG",
+        "reviewRequired": true
+      },
+      "status": "generated"
+    },
+    {
+      "source": {
+        "kind": "worker",
+        "workerId": "worker:oms-camunda-quest1:com.oms.workers.OmsWorkers#updateDashboard",
+        "jobType": "update-dashboard",
+        "elementId": "update-dashboard",
+        "processId": "order-processing",
+        "classificationKey": ""
+      },
+      "target": {
+        "construct": "activity",
+        "family": "activity",
+        "symbol": "com.shinro.migration.omscamundaquest1.activities.UpdateDashboardActivityImpl#updateDashboard",
+        "file": "activities/UpdateDashboardActivityImpl.java",
+        "startLine": 26
+      },
+      "decisions": {
+        "sideEffectClass": "idempotent-with-key",
+        "idempotencyKey": "",
+        "retryPolicy": {},
+        "coverageClass": "ASSISTED",
+        "reviewRequired": true
+      },
+      "status": "generated"
+    },
+    {
+      "source": {
+        "kind": "worker",
+        "workerId": "worker:oms-camunda-quest1:com.oms.workers.OmsWorkers#validatePayment",
+        "jobType": "validate-payment",
+        "elementId": "validate-payment",
+        "processId": "order-processing",
+        "classificationKey": ""
+      },
+      "target": {
+        "construct": "activity",
+        "family": "activity",
+        "symbol": "com.shinro.migration.omscamundaquest1.activities.ValidatePaymentActivityImpl#validatePayment",
+        "file": "activities/ValidatePaymentActivityImpl.java",
+        "startLine": 26
+      },
+      "decisions": {
+        "sideEffectClass": "read-only",
+        "idempotencyKey": "",
+        "retryPolicy": {
+          "maximumAttempts": 2147483647
+        },
+        "coverageClass": "ASSISTED",
+        "reviewRequired": true
+      },
+      "status": "generated"
+    },
+    {
+      "source": {
+        "kind": "worker",
+        "workerId": "worker:oms-camunda-quest1:com.oms.workers.OmsWorkers#publishFulfillment",
+        "jobType": "publish-fulfillment",
+        "elementId": "publish-fulfillment",
+        "processId": "order-processing",
+        "classificationKey": ""
+      },
+      "target": {
+        "construct": "activity",
+        "family": "activity",
+        "symbol": "com.shinro.migration.omscamundaquest1.activities.PublishFulfillmentActivityImpl#publishToFulfillment",
+        "file": "activities/PublishFulfillmentActivityImpl.java",
+        "startLine": 26
+      },
+      "decisions": {
+        "sideEffectClass": "read-only-unverified",
+        "idempotencyKey": "",
+        "retryPolicy": {
+          "maximumAttempts": 2147483647
+        },
+        "coverageClass": "AUTO+FLAG",
+        "reviewRequired": true
+      },
+      "status": "generated"
+    },
+    {
+      "source": {
+        "kind": "worker",
+        "workerId": "",
+        "jobType": "",
+        "elementId": "order-processing",
+        "processId": "order-processing",
+        "classificationKey": ""
+      },
+      "target": {
+        "construct": "workflow",
+        "family": "workflow",
+        "symbol": "com.shinro.migration.omscamundaquest1.workflows.OrderProcessingWorkflowImpl",
+        "file": "workflows/OrderProcessingWorkflowImpl.java",
+        "startLine": 27
+      },
+      "decisions": {
+        "sideEffectClass": "",
+        "idempotencyKey": "",
+        "retryPolicy": {},
+        "coverageClass": "ASSISTED",
+        "reviewRequired": true
+      },
+      "status": "generated"
+    }
+  ]
+}
