@@ -1,0 +1,82 @@
+exit 1
+2026/10/07 18:09:57 DEBUG Auto fire timer TimerID 0 TimerDuration 1ms TimeSkipped 1ms
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 2 ActivityType UpdateDashboard
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 4 ActivityType ValidateOrder
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 5 ActivityType UpdateDashboard
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 6 ActivityType ValidatePayment
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 7 ActivityType UpdateDashboard
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 8 ActivityType EnrichOrder
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 9 ActivityType PublishFulfillment
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 10 ActivityType UpdateDashboard
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 3 ActivityType UpdateDashboard
+2026/10/07 18:09:57 ERROR Activity error. WorkflowID default-test-workflow-id RunID default-test-run-id ActivityType ValidateOrder Attempt 1 Error order must contain at least one item (type: INVALID_ORDER, retryable: false)
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskFailedRequest. ActivityID 5 ActivityType ValidateOrder
+2026/10/07 18:09:57 INFO  order validation failed; awaiting correction reason= activity error (type: ValidateOrder, scheduledEventID: 0, startedEventID: 0, identity: ): order must contain at least one item (type: INVALID_ORDER, retryable: false)
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 6 ActivityType UpdateDashboard
+2026/10/07 18:09:57 DEBUG Auto fire timer TimerID 0 TimerDuration 1ms TimeSkipped 1ms
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 7 ActivityType ValidateOrder
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 8 ActivityType UpdateDashboard
+2026/10/07 18:09:57 DEBUG Auto fire timer TimerID 1 TimerDuration 2ms TimeSkipped 1ms
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 9 ActivityType ValidatePayment
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 10 ActivityType UpdateDashboard
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 11 ActivityType EnrichOrder
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 12 ActivityType PublishFulfillment
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 13 ActivityType UpdateDashboard
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 3 ActivityType UpdateDashboard
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 5 ActivityType ValidateOrder
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 6 ActivityType UpdateDashboard
+2026/10/07 18:09:57 DEBUG Auto fire timer TimerID 0 TimerDuration 1ms TimeSkipped 1ms
+2026/10/07 18:09:57 ERROR Activity error. WorkflowID default-test-workflow-id RunID default-test-run-id ActivityType ValidatePayment Attempt 1 Error invalid RRN length 3; must be 12 digits (type: INVALID_PAYMENT, retryable: false)
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskFailedRequest. ActivityID 7 ActivityType ValidatePayment
+2026/10/07 18:09:57 INFO  payment validation failed; awaiting new payment reason= activity error (type: ValidatePayment, scheduledEventID: 0, startedEventID: 0, identity: ): invalid RRN length 3; must be 12 digits (type: INVALID_PAYMENT, retryable: false)
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 8 ActivityType ValidateOrder
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 9 ActivityType UpdateDashboard
+2026/10/07 18:09:57 DEBUG Auto fire timer TimerID 1 TimerDuration 2ms TimeSkipped 1ms
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 10 ActivityType ValidatePayment
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 11 ActivityType UpdateDashboard
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 12 ActivityType EnrichOrder
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 13 ActivityType PublishFulfillment
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 14 ActivityType UpdateDashboard
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 2 ActivityType UpdateDashboard
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 4 ActivityType ValidateOrder
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 5 ActivityType UpdateDashboard
+2026/10/07 18:09:57 DEBUG Auto fire timer TimerID 0 TimerDuration 1ms TimeSkipped 1ms
+2026/10/07 18:09:57 DEBUG Auto fire timer TimerID 3 TimerDuration 720h0m0s TimeSkipped 719h59m59.999s
+2026/10/07 18:09:57 DEBUG Auto fire timer TimerID 1 TimerDuration 87600h0m0s TimeSkipped 86880h0m0s
+--- FAIL: TestOrderProcessingCancelSubprocess (0.00s)
+    order_processing_test.go:260: workflow error = workflow execution error (type: OrderProcessingWorkflow, workflowID: default-test-workflow-id, runID: default-test-run-id): deadline exceeded (type: ScheduleToClose) (*internal.WorkflowExecutionError), want the TERMINATED application error
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 1 ActivityType UpdateDashboard
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 3 ActivityType ValidateOrder
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 4 ActivityType UpdateDashboard
+2026/10/07 18:09:57 DEBUG Auto fire timer TimerID 2 TimerDuration 1h0m0s TimeSkipped 1h0m0s
+2026/10/07 18:09:57 DEBUG Auto fire timer TimerID 0 TimerDuration 87600h0m0s TimeSkipped 87599h0m0s
+--- FAIL: TestOrderProcessingTTLSubprocess (0.00s)
+    order_processing_test.go:293: workflow error = workflow execution error (type: OrderProcessingWorkflow, workflowID: default-test-workflow-id, runID: default-test-run-id): deadline exceeded (type: ScheduleToClose) (*internal.WorkflowExecutionError), want the TERMINATED application error
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 1 ActivityType UpdateDashboard
+2026/10/07 18:09:57 ERROR Activity error. WorkflowID default-test-workflow-id RunID default-test-run-id ActivityType ValidateOrder Attempt 1 Error commerce API timeout (type: TRANSIENT, retryable: true)
+2026/10/07 18:09:57 DEBUG Auto fire timer TimerID 4 TimerDuration 1s TimeSkipped 1s
+2026/10/07 18:09:57 ERROR Activity error. WorkflowID default-test-workflow-id RunID default-test-run-id ActivityType ValidateOrder Attempt 2 Error commerce API timeout (type: TRANSIENT, retryable: true)
+2026/10/07 18:09:57 DEBUG Auto fire timer TimerID 5 TimerDuration 1s TimeSkipped 1s
+2026/10/07 18:09:57 ERROR Activity error. WorkflowID default-test-workflow-id RunID default-test-run-id ActivityType ValidateOrder Attempt 3 Error commerce API timeout (type: TRANSIENT, retryable: true)
+2026/10/07 18:09:57 DEBUG Auto fire timer TimerID 6 TimerDuration 1s TimeSkipped 1s
+2026/10/07 18:09:57 ERROR Activity error. WorkflowID default-test-workflow-id RunID default-test-run-id ActivityType ValidateOrder Attempt 4 Error commerce API timeout (type: TRANSIENT, retryable: true)
+2026/10/07 18:09:57 DEBUG Auto fire timer TimerID 7 TimerDuration 1s TimeSkipped 1s
+2026/10/07 18:09:57 ERROR Activity error. WorkflowID default-test-workflow-id RunID default-test-run-id ActivityType ValidateOrder Attempt 5 Error commerce API timeout (type: TRANSIENT, retryable: true)
+2026/10/07 18:09:57 DEBUG Auto fire timer TimerID 8 TimerDuration 1s TimeSkipped 1s
+2026/10/07 18:09:57 ERROR Activity error. WorkflowID default-test-workflow-id RunID default-test-run-id ActivityType ValidateOrder Attempt 6 Error commerce API timeout (type: TRANSIENT, retryable: true)
+2026/10/07 18:09:57 DEBUG Auto fire timer TimerID 9 TimerDuration 1s TimeSkipped 1s
+2026/10/07 18:09:57 ERROR Activity error. WorkflowID default-test-workflow-id RunID default-test-run-id ActivityType ValidateOrder Attempt 7 Error commerce API timeout (type: TRANSIENT, retryable: true)
+2026/10/07 18:09:57 DEBUG Auto fire timer TimerID 10 TimerDuration 1s TimeSkipped 1s
+2026/10/07 18:09:57 ERROR Activity error. WorkflowID default-test-workflow-id RunID default-test-run-id ActivityType ValidateOrder Attempt 8 Error commerce API timeout (type: TRANSIENT, retryable: true)
+2026/10/07 18:09:57 DEBUG Auto fire timer TimerID 11 TimerDuration 1s TimeSkipped 1s
+2026/10/07 18:09:57 ERROR Activity error. WorkflowID default-test-workflow-id RunID default-test-run-id ActivityType ValidateOrder Attempt 9 Error commerce API timeout (type: TRANSIENT, retryable: true)
+2026/10/07 18:09:57 DEBUG Auto fire timer TimerID 12 TimerDuration 1s TimeSkipped 1s
+2026/10/07 18:09:57 ERROR Activity error. WorkflowID default-test-workflow-id RunID default-test-run-id ActivityType ValidateOrder Attempt 10 Error commerce API timeout (type: TRANSIENT, retryable: true)
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskFailedRequest. ActivityID 3 ActivityType ValidateOrder
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 2 ActivityType UpdateDashboard
+2026/10/07 18:09:57 DEBUG Auto fire timer TimerID 0 TimerDuration 1ms TimeSkipped 1ms
+2026/10/07 18:09:57 DEBUG handleActivityResult: *workflowservice.RespondActivityTaskCompletedRequest. ActivityID 1 ActivityType UpdateDashboard
+2026/10/07 18:09:57 DEBUG Auto fire timer TimerID 2 TimerDuration 1h0m0s TimeSkipped 1h0m0s
+FAIL
+FAIL	shinro-migration/oms-camunda-application/workflows	0.846s
+FAIL

@@ -1,0 +1,113 @@
+{
+  "schemaVersion": "1.0.0",
+  "tasks": [
+    {
+      "id": "process:order-processing",
+      "title": "Migrate process `order-processing`",
+      "status": "done",
+      "children": [
+        {
+          "id": "order-processing:activity:enrich-order",
+          "title": "Migrate worker `enrich-order` → Temporal activity",
+          "status": "done",
+          "children": [],
+          "notes": [
+            "activities.EnrichOrder — deterministic PIM enrichment (sku/brand backfill). md flags unverified-callee (ObjectMapper.convertValue) → reviewRequired."
+          ]
+        },
+        {
+          "id": "order-processing:activity:publish-fulfillment",
+          "title": "Migrate worker `publish-fulfillment` → Temporal activity",
+          "status": "done",
+          "children": [],
+          "notes": [
+            "activities.PublishFulfillment — builds FulfillmentMessage (eventId fulfillment:<orderId>:v1 is the consumer dedup key) and publishes; default publisher mirrors the source's log-only publish. md flags unverified-callee → reviewRequired."
+          ]
+        },
+        {
+          "id": "order-processing:activity:update-dashboard",
+          "title": "Migrate worker `update-dashboard` → Temporal activity",
+          "status": "done",
+          "children": [],
+          "notes": [
+            "activities.UpdateDashboard — best-effort upsert keyed by orderId (idempotency key). Default writer fails loudly NOT_IMPLEMENTED; SQLDashboardWriter ports JdbcDashboardRepository upsert SQL (driver/DSN must be wired in cmd/worker). No Suggested retry policy in md → SDK default."
+          ]
+        },
+        {
+          "id": "order-processing:activity:validate-order",
+          "title": "Migrate worker `validate-order` → Temporal activity",
+          "status": "done",
+          "children": [],
+          "notes": [
+            "activities.ValidateOrder — pure in-memory validation (applyCorrection + business rules); BPMN error INVALID_ORDER as NonRetryableApplicationError. No policy line in worker md beyond maxAttempts — but md Suggested retry policy: maxAttempts=2147483647 → no MaximumAttempts cap (SDK default)."
+          ]
+        },
+        {
+          "id": "order-processing:activity:validate-payment",
+          "title": "Migrate worker `validate-payment` → Temporal activity",
+          "status": "done",
+          "children": [],
+          "notes": [
+            "activities.ValidatePayment — RRN/amount validation; INVALID_PAYMENT as NonRetryableApplicationError. RetryPolicy MaximumAttempts:5 per md Suggested retry policy (applied at the ExecuteActivity call site)."
+          ]
+        },
+        {
+          "id": "order-processing:workflow",
+          "title": "Write the workflow for process `order-processing` (orchestration, signals, timers, error boundaries)",
+          "status": "done",
+          "children": [],
+          "notes": [
+            "workflows.OrderProcessingWorkflow — signal channels for Catch_Payment/Catch_Correction, interrupting cancel/TTL via workflow.Go + generation-counter slots (this SDK build has no workflow.Select; a blocking Receive inside an Await condition was probed to defeat flag wake-up), typed boundary errors via appErrorCode chain walk (this SDK wraps in *internal.WorkflowExecutionError)."
+          ]
+        },
+        {
+          "id": "order-processing:wire",
+          "title": "Register workflow + activities in the worker wiring (cmd/worker)",
+          "status": "done",
+          "children": [],
+          "notes": [
+            "cmd/worker/main.go registers workflow + all 5 activities on task queue order-processing."
+          ]
+        },
+        {
+          "id": "order-processing:test",
+          "title": "Write conformance tests (workflow + activities) for process `order-processing` — testsuite cases from the BPMN flow",
+          "status": "done",
+          "children": [],
+          "notes": [
+            "SDK build in module cache is v1.34.0 per go.mod but exposes an OLD testsuite/workflow API (no NewTestWorkflowEnvironment, no workflow.Select/NewCanceler, ExecuteWorkflow returns (WorkflowRun, error)). Adapting tests to the cached SDK's actual API.",
+            "Adapted to the cached SDK v1.34.0 testsuite: OnActivity expectations need a mock.Anything context arg (this build doesn't prepend ctx to stored expectations); boundary errors asserted via Unwrap-chain helper; cancel test shortens orderTTL to 5s so the mock clock doesn't race the test deadline with ScheduleToClose. Covers: happy path, INVALID_ORDER correction loop, INVALID_PAYMENT loop, cancel subprocess, TTL subprocess, transient-failure propagation."
+          ]
+        },
+        {
+          "id": "order-processing:build",
+          "title": "Run `go build ./... && go test ./...` and fix every failure",
+          "status": "done",
+          "children": [],
+          "notes": [
+            "go build ./... && go vet ./... && go test ./... green."
+          ]
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": "final:verify",
+      "title": "Final `go build ./... && go vet ./... && go test ./...` and migration-manifest.json",
+      "status": "done",
+      "children": [],
+      "notes": [
+        "go build ./... && go vet ./... && go test ./... all green (activities + workflows packages, 0 failures). Probe scaffolding cleaned to placeholder files; migration-manifest.json counts updated to generated=1/finished=true."
+      ]
+    },
+    {
+      "id": "final:mapping-manifest",
+      "title": "Emit codegen-mapping-manifest.json in the project root — one row per worker/element/decision/workflow → its Go symbol, plus decisions & gaps — so the validator can check coverage and fidelity",
+      "status": "done",
+      "children": [],
+      "notes": [
+        "codegen-mapping-manifest.json emitted in project root: 24 mapping rows (5 workers + 17 bpmn elements incl. catch events, boundaries, interrupts, terminate ends + the workflow entryPoint) each pointing at the exact Go symbol; decisions carry sideEffectClass/idempotencyKey/retryPolicy per worker md (validate-payment maxAttempts=5 with INVALID_PAYMENT nonRetryable; enrich-order/publish-fulfillment/validate-order no cap per maxAttempts=2147483647; update-dashboard no policy); reviewRequired=true on all ASSISTED + unverified-callee rows; 2 warn gaps (dashboard DSN wiring, fulfillment broker)."
+      ]
+    }
+  ]
+}

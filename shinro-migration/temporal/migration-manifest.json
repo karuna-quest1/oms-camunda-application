@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "migration-manifest",
+  "mode": "agentic",
+  "counts": {
+    "generated": 12,
+    "manual": 0,
+    "pending": 0
+  },
+  "units": [
+    {
+      "id": "process:order-processing",
+      "name": "Migrate process `order-processing`",
+      "type": "task",
+      "file": "",
+      "status": "generated"
+    },
+    {
+      "id": "final:verify",
+      "name": "Final `go build ./... && go vet ./... && go test ./...` and migration-manifest.json",
+      "type": "task",
+      "file": "",
+      "status": "generated"
+    },
+    {
+      "id": "final:mapping-manifest",
+      "name": "Emit codegen-mapping-manifest.json in the project root — one row per worker/element/decision/workflow → its Go symbol, plus decisions & gaps — so the validator can check coverage and fidelity",
+      "type": "task",
+      "file": "",
+      "status": "generated"
+    }
+  ],
+  "agentStats": {
+    "turns": 325,
+    "toolCalls": 503,
+    "finished": true,
+    "reason": "tasks-complete",
+    "buildOk": true,
+    "testsOk": true
+  },
+  "manualWork": [],
+  "uncoveredProcesses": [],
+  "generatedAt": "2026-10-07T13:03:18.682Z"
+}

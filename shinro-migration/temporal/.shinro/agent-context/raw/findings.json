@@ -1,0 +1,916 @@
+{
+  "schemaVersion": "1.4.0",
+  "kind": "code-analysis-findings",
+  "source": {
+    "module": "oms-camunda-application",
+    "repoRootRelative": "oms-camunda-application",
+    "languagesDetected": [
+      "java"
+    ],
+    "analyzedAt": "2026-09-25T04:28:59Z",
+    "analyzerVersion": "0.1.0"
+  },
+  "summary": {
+    "workerCount": 5,
+    "distinctJobTypes": 5,
+    "workersPreClassifiedByRule": 2,
+    "workersNeedingLLM": 3,
+    "entryPointCount": 2,
+    "testEntryPointCount": 0,
+    "humanTaskCount": 0,
+    "unresolvedJobTypes": 0,
+    "coverageGapCount": 1,
+    "processCount": 1,
+    "decisionCount": 0
+  },
+  "entryPoints": [
+    {
+      "kind": "rest",
+      "http": "POST /orders",
+      "startsProcess": "",
+      "command": "newCreateInstanceCommand",
+      "versionPolicy": "latestVersion",
+      "origin": "main",
+      "location": {
+        "file": "src/main/java/com/oms/api/OrderController.java",
+        "line": 106
+      }
+    },
+    {
+      "kind": "message",
+      "startsProcess": "",
+      "command": "newPublishMessageCommand",
+      "origin": "main",
+      "location": {
+        "file": "src/main/java/com/oms/api/OrderController.java",
+        "line": 222
+      }
+    }
+  ],
+  "workers": [
+    {
+      "id": "worker:oms-camunda-application:com.oms.workers.CommerceWorkers#validateOrder",
+      "jobType": "validate-order",
+      "jobTypeResolution": "static",
+      "jobTypeEvidence": {
+        "kind": "constant-origin",
+        "path": [
+          {
+            "fqn": "ProcessConstants.JOB_VALIDATE_ORDER",
+            "file": "src/main/java/com/oms/process/ProcessConstants.java",
+            "startLine": 22
+          }
+        ]
+      },
+      "activityName": "Validate-order",
+      "language": "java",
+      "sdk": "spring-zeebe",
+      "registration": {
+        "style": "annotation",
+        "symbol": "@JobWorker(type = JOB_VALIDATE_ORDER, autoComplete = false, maxJobsActive = 150)",
+        "location": {
+          "file": "src/main/java/com/oms/workers/CommerceWorkers.java",
+          "line": 50
+        }
+      },
+      "autoComplete": false,
+      "variablesRead": [],
+      "variablesWritten": [],
+      "callGraph": [
+        "ObjectMapper.convertValue",
+        "Logger.info",
+        "Logger.warn"
+      ],
+      "camundaApiCalls": [
+        {
+          "command": "newThrowErrorCommand",
+          "path": "success",
+          "location": {
+            "file": "src/main/java/com/oms/workers/CommerceWorkers.java",
+            "line": 65
+          },
+          "codegenHint": "NonRetryableApplicationError(type=\"\")"
+        },
+        {
+          "command": "newCompleteCommand",
+          "path": "success",
+          "location": {
+            "file": "src/main/java/com/oms/workers/CommerceWorkers.java",
+            "line": 80
+          },
+          "codegenHint": "return output, nil"
+        }
+      ],
+      "externalCalls": [],
+      "errorMapping": [],
+      "sensitiveVariables": [],
+      "sourceCode": {
+        "file": "src/main/java/com/oms/workers/CommerceWorkers.java",
+        "startLine": 50,
+        "endLine": 81,
+        "language": "java",
+        "code": "@JobWorker(type = JOB_VALIDATE_ORDER, autoComplete = false, maxJobsActive = 150)\n  public void validateOrder(JobClient client, ActivatedJob job) {\n    Map<String, Object> vars = job.getVariablesAsMap();\n    OrderInput order = objectMapper.convertValue(vars.get(VAR_ORDER), OrderInput.class);\n\n    // Apply any pending SupportCorrection (delivered as correctionItems) before\n    // re-validating — the parity of WorkflowState.ApplyCorrection.\n    order = applyCorrection(order, vars.get(VAR_CORRECTION_ITEMS));\n\n    LOG.info(\"validate-order started orderId={}\", order == null ? null : order.orderId());\n\n    String rejection = validationError(order);\n    if (rejection != null) {\n      LOG.warn(\"Order validation failed: {}\", rejection);\n      // Non-retryable business failure -> correction loop (not a job retry).\n      client\n          .newThrowErrorCommand(job)\n          .errorCode(ERR_INVALID_ORDER)\n          .errorMessage(rejection)\n          .send()\n          .join();\n      return;\n    }\n\n    // Mock commerce validation is idempotent; echo the (validated) order back\n    // and clear the consumed correction.\n    LOG.info(\"validate-order completed orderId={}\", order.orderId());\n    Map<String, Object> out = new HashMap<>();\n    out.put(VAR_ORDER, order);\n    out.put(VAR_CORRECTION_ITEMS, null);\n    client.newCompleteCommand(job).variables(out).send().join();\n  }"
+      },
+      "inference": {
+        "sideEffectClass": "read-only",
+        "summary": "Validates an order structure in memory, applying any pending corrections before checking business rules, then either throws a business error or completes with the validated order.",
+        "confidence": 0.95,
+        "provenance": "llm",
+        "model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "rationale": "The code slice shows only in-memory operations: reading variables, deserializing with ObjectMapper.convertValue, applying corrections via applyCorrection (not shown but appears to be a pure function), calling validationError (a validation check), and logging. No external I/O is visible—no HTTP calls, database writes, or service invocations appear in the delegated call graph (only ObjectMapper.convertValue, Logger.info, Logger.warn). The handler either throws a business error (newThrowErrorCommand) or completes with updated variables (newCompleteCommand), both of which are Zeebe engine operations, not side effects. The comment 'Mock commerce validation is idempotent' reinforces this is a pure validation step. Retrying this worker is safe because it produces the same validation outcome given the same input."
+      },
+      "migration": {
+        "coverageClass": "ASSISTED",
+        "suggestedRetryPolicy": {
+          "maximumAttempts": 2147483647
+        },
+        "flags": [
+          "autoComplete=false + throwError -> typed error branch to user-task"
+        ]
+      }
+    },
+    {
+      "id": "worker:oms-camunda-application:com.oms.workers.OmsWorkers#enrichOrder",
+      "jobType": "enrich-order",
+      "jobTypeResolution": "static",
+      "jobTypeEvidence": {
+        "kind": "constant-origin",
+        "path": [
+          {
+            "fqn": "ProcessConstants.JOB_ENRICH_ORDER",
+            "file": "src/main/java/com/oms/process/ProcessConstants.java",
+            "startLine": 24
+          }
+        ]
+      },
+      "activityName": "Enrich-order",
+      "language": "java",
+      "sdk": "spring-zeebe",
+      "registration": {
+        "style": "annotation",
+        "symbol": "@JobWorker(type = JOB_ENRICH_ORDER)",
+        "location": {
+          "file": "src/main/java/com/oms/workers/OmsWorkers.java",
+          "line": 124
+        }
+      },
+      "autoComplete": true,
+      "variablesRead": [],
+      "variablesWritten": [],
+      "callGraph": [
+        "ObjectMapper.convertValue",
+        "Logger.info"
+      ],
+      "camundaApiCalls": [],
+      "externalCalls": [],
+      "errorMapping": [],
+      "sensitiveVariables": [],
+      "sourceCode": {
+        "file": "src/main/java/com/oms/workers/OmsWorkers.java",
+        "startLine": 124,
+        "endLine": 155,
+        "language": "java",
+        "code": "@JobWorker(type = JOB_ENRICH_ORDER)\n  public Map<String, Object> enrichOrder(ActivatedJob job) {\n    OrderInput order =\n        objectMapper.convertValue(job.getVariablesAsMap().get(VAR_ORDER), OrderInput.class);\n    LOG.info(\"enrich-order started orderId={}\", order.orderId());\n\n    List<OrderItem> enriched = new ArrayList<>();\n    List<OrderItem> items = order.items() == null ? List.of() : order.items();\n    for (int i = 0; i < items.size(); i++) {\n      OrderItem item = items.get(i);\n      String sku =\n          item.skuId() == null || item.skuId().isBlank()\n              ? \"SKU-\" + order.orderId() + \"-\" + (i + 1)\n              : item.skuId();\n      String brand =\n          item.brandCode() == null || item.brandCode().isBlank()\n              ? \"BRAND-\" + item.itemId()\n              : item.brandCode();\n      enriched.add(\n          new OrderItem(item.itemId(), item.quantity(), item.unitPrice(), sku, brand));\n    }\n\n    OrderInput enrichedOrder =\n        new OrderInput(\n            order.orderId(),\n            order.customerId(),\n            enriched,\n            order.totalAmount(),\n            order.currency());\n    LOG.info(\"enrich-order completed orderId={} itemCount={}\", order.orderId(), enriched.size());\n    return Map.of(VAR_ORDER, enrichedOrder);\n  }"
+      },
+      "inference": {
+        "sideEffectClass": "read-only-unverified",
+        "summary": null,
+        "confidence": 0.55,
+        "provenance": "rule",
+        "rationale": "no known I/O sink on resolved paths; unresolved callee(s): ObjectMapper.convertValue",
+        "evidence": {
+          "kind": "unresolved",
+          "path": [
+            {
+              "fqn": "ObjectMapper.convertValue",
+              "file": ""
+            }
+          ],
+          "note": "no I/O sink found on resolved paths, but a callee could not be resolved"
+        },
+        "requiresHumanConfirmation": true
+      },
+      "migration": {
+        "coverageClass": "AUTO+FLAG",
+        "suggestedRetryPolicy": {
+          "maximumAttempts": 2147483647
+        },
+        "flags": [
+          "unverified-callee: cannot resolve ObjectMapper.convertValue"
+        ]
+      }
+    },
+    {
+      "id": "worker:oms-camunda-application:com.oms.workers.OmsWorkers#publishToFulfillment",
+      "jobType": "publish-fulfillment",
+      "jobTypeResolution": "static",
+      "jobTypeEvidence": {
+        "kind": "constant-origin",
+        "path": [
+          {
+            "fqn": "ProcessConstants.JOB_PUBLISH_FULFILLMENT",
+            "file": "src/main/java/com/oms/process/ProcessConstants.java",
+            "startLine": 26
+          }
+        ]
+      },
+      "activityName": "Publish-fulfillment",
+      "language": "java",
+      "sdk": "spring-zeebe",
+      "registration": {
+        "style": "annotation",
+        "symbol": "@JobWorker(type = JOB_PUBLISH_FULFILLMENT)",
+        "location": {
+          "file": "src/main/java/com/oms/workers/OmsWorkers.java",
+          "line": 198
+        }
+      },
+      "autoComplete": true,
+      "variablesRead": [],
+      "variablesWritten": [],
+      "callGraph": [
+        "ObjectMapper.convertValue",
+        "Logger.info"
+      ],
+      "camundaApiCalls": [],
+      "externalCalls": [],
+      "errorMapping": [],
+      "sensitiveVariables": [],
+      "sourceCode": {
+        "file": "src/main/java/com/oms/workers/OmsWorkers.java",
+        "startLine": 198,
+        "endLine": 220,
+        "language": "java",
+        "code": "@JobWorker(type = JOB_PUBLISH_FULFILLMENT)\n  public void publishToFulfillment(ActivatedJob job) {\n    Map<String, Object> vars = job.getVariablesAsMap();\n    OrderInput order = objectMapper.convertValue(vars.get(VAR_ORDER), OrderInput.class);\n    PaymentInput payment = objectMapper.convertValue(vars.get(VAR_PAYMENT), PaymentInput.class);\n\n    FulfillmentMessage msg =\n        new FulfillmentMessage(\n            \"fulfillment:\" + order.orderId() + \":v1\",\n            1,\n            order.customerId(),\n            order.orderId(),\n            payment,\n            order.items());\n\n    LOG.info(\n        \"publish-fulfillment: published to order-fulfillment topic eventId={} orderId={} customerId={} itemCount={} paymentRRN={}\",\n        msg.eventId(),\n        msg.orderId(),\n        msg.customerId(),\n        msg.items() == null ? 0 : msg.items().size(),\n        payment == null ? null : payment.rrn());\n  }"
+      },
+      "inference": {
+        "sideEffectClass": "read-only-unverified",
+        "summary": null,
+        "confidence": 0.55,
+        "provenance": "rule",
+        "rationale": "no known I/O sink on resolved paths; unresolved callee(s): ObjectMapper.convertValue",
+        "evidence": {
+          "kind": "unresolved",
+          "path": [
+            {
+              "fqn": "ObjectMapper.convertValue",
+              "file": ""
+            }
+          ],
+          "note": "no I/O sink found on resolved paths, but a callee could not be resolved"
+        },
+        "requiresHumanConfirmation": true
+      },
+      "migration": {
+        "coverageClass": "AUTO+FLAG",
+        "suggestedRetryPolicy": {
+          "maximumAttempts": 2147483647
+        },
+        "flags": [
+          "unverified-callee: cannot resolve ObjectMapper.convertValue"
+        ]
+      }
+    },
+    {
+      "id": "worker:oms-camunda-application:com.oms.workers.OmsWorkers#updateDashboard",
+      "jobType": "update-dashboard",
+      "jobTypeResolution": "static",
+      "jobTypeEvidence": {
+        "kind": "constant-origin",
+        "path": [
+          {
+            "fqn": "ProcessConstants.JOB_UPDATE_DASHBOARD",
+            "file": "src/main/java/com/oms/process/ProcessConstants.java",
+            "startLine": 25
+          }
+        ]
+      },
+      "activityName": "Update-dashboard",
+      "language": "java",
+      "sdk": "spring-zeebe",
+      "registration": {
+        "style": "annotation",
+        "symbol": "@JobWorker(type = JOB_UPDATE_DASHBOARD)",
+        "location": {
+          "file": "src/main/java/com/oms/workers/OmsWorkers.java",
+          "line": 169
+        }
+      },
+      "autoComplete": true,
+      "variablesRead": [],
+      "variablesWritten": [],
+      "callGraph": [
+        "Logger.error",
+        "Logger.info",
+        "DashboardRepository.upsert",
+        "Logger.warn"
+      ],
+      "camundaApiCalls": [],
+      "externalCalls": [],
+      "errorMapping": [],
+      "sensitiveVariables": [],
+      "sourceCode": {
+        "file": "src/main/java/com/oms/workers/OmsWorkers.java",
+        "startLine": 169,
+        "endLine": 189,
+        "language": "java",
+        "code": "@JobWorker(type = JOB_UPDATE_DASHBOARD)\n  public void updateDashboard(ActivatedJob job) {\n    String orderId = String.valueOf(job.getVariablesAsMap().get(VAR_ORDER_ID));\n    String statusHeader = job.getCustomHeaders().get(HEADER_STATUS);\n\n    OrderStatus status;\n    try {\n      status = OrderStatus.fromString(statusHeader);\n    } catch (RuntimeException e) {\n      // Matches ValidationFailure on an unsupported dashboard status.\n      LOG.error(\"Unsupported dashboard status header: {}\", statusHeader);\n      throw e;\n    }\n\n    LOG.info(\"update-dashboard orderId={} status={}\", orderId, status);\n    try {\n      dashboardRepo.upsert(new DashboardStatus(orderId, status.name(), Instant.now()));\n    } catch (RuntimeException e) {\n      LOG.warn(\"dashboard update failed; continuing orderId={} status={}\", orderId, status, e);\n    }\n  }"
+      },
+      "calleeAnchors": [
+        {
+          "fqn": "DashboardRepository.upsert",
+          "file": "",
+          "startLine": 9,
+          "endLine": 9
+        }
+      ],
+      "sinkChain": [
+        {
+          "method": "JdbcDashboardRepository.upsert",
+          "file": "src/main/java/com/oms/dashboard/JdbcDashboardRepository.java",
+          "code": "@Override\n  public void upsert(DashboardStatus status) {\n    Timestamp updatedAt = Timestamp.from(status.updatedAt());\n    if (update(status.orderId(), status.status(), updatedAt) == 0) {\n      // Row absent: try to insert. If a concurrent writer inserted it first, the\n      // primary key rejects our insert (DuplicateKeyException) and we fall back\n      // to an update — so the write is never silently lost to a race.\n      try {\n        insert(status.orderId(), status.status(), updatedAt);\n      } catch (DuplicateKeyException e) {\n        update(status.orderId(), status.status(), updatedAt);\n      }\n    }\n  }"
+        }
+      ],
+      "inference": {
+        "sideEffectClass": "idempotent-with-key",
+        "summary": "Updates a dashboard with order status using an upsert pattern keyed by orderId",
+        "confidence": 0.95,
+        "provenance": "llm",
+        "model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "idempotencyKey": "orderId",
+        "rationale": "The code slice shows JdbcDashboardRepository.upsert performs a keyed write using orderId as the primary key. The implementation follows update-or-insert logic: first attempts UPDATE WHERE orderId matches, on 0 rows affected tries INSERT (which will fail on duplicate key if concurrent), then falls back to UPDATE. This is a proper upsert pattern with orderId as the deduplication key — multiple executions with the same orderId will overwrite the same row with the latest status and timestamp, making retries safe."
+      },
+      "migration": {
+        "coverageClass": "ASSISTED",
+        "flags": []
+      }
+    },
+    {
+      "id": "worker:oms-camunda-application:com.oms.workers.OmsWorkers#validatePayment",
+      "jobType": "validate-payment",
+      "jobTypeResolution": "static",
+      "jobTypeEvidence": {
+        "kind": "constant-origin",
+        "path": [
+          {
+            "fqn": "ProcessConstants.JOB_VALIDATE_PAYMENT",
+            "file": "src/main/java/com/oms/process/ProcessConstants.java",
+            "startLine": 23
+          }
+        ]
+      },
+      "activityName": "Validate-payment",
+      "language": "java",
+      "sdk": "spring-zeebe",
+      "registration": {
+        "style": "annotation",
+        "symbol": "@JobWorker(type = JOB_VALIDATE_PAYMENT, autoComplete = false)",
+        "location": {
+          "file": "src/main/java/com/oms/workers/OmsWorkers.java",
+          "line": 63
+        }
+      },
+      "autoComplete": false,
+      "variablesRead": [],
+      "variablesWritten": [],
+      "callGraph": [
+        "ObjectMapper.convertValue",
+        "Logger.info",
+        "Logger.warn"
+      ],
+      "camundaApiCalls": [
+        {
+          "command": "newThrowErrorCommand",
+          "path": "success",
+          "location": {
+            "file": "src/main/java/com/oms/workers/OmsWorkers.java",
+            "line": 78
+          },
+          "codegenHint": "NonRetryableApplicationError(type=\"\")"
+        },
+        {
+          "command": "newCompleteCommand",
+          "path": "success",
+          "location": {
+            "file": "src/main/java/com/oms/workers/OmsWorkers.java",
+            "line": 88
+          },
+          "codegenHint": "return output, nil"
+        }
+      ],
+      "externalCalls": [],
+      "errorMapping": [],
+      "sensitiveVariables": [],
+      "sourceCode": {
+        "file": "src/main/java/com/oms/workers/OmsWorkers.java",
+        "startLine": 63,
+        "endLine": 89,
+        "language": "java",
+        "code": "@JobWorker(type = JOB_VALIDATE_PAYMENT, autoComplete = false)\n  public void validatePayment(JobClient client, ActivatedJob job) {\n    Map<String, Object> vars = job.getVariablesAsMap();\n    PaymentInput payment = objectMapper.convertValue(vars.get(VAR_PAYMENT), PaymentInput.class);\n    OrderInput order = objectMapper.convertValue(vars.get(VAR_ORDER), OrderInput.class);\n    double expectedAmount = order == null ? 0 : order.totalAmount();\n\n    LOG.info(\"validate-payment started rrn={}\", payment == null ? null : payment.rrn());\n\n    String rejection = validationError(payment, expectedAmount);\n    if (rejection != null) {\n      LOG.warn(\"Payment validation failed: {}\", rejection);\n      // BPMN error -> boundary event loops back to the CapturePayment wait. No\n      // need to clear the payment variable: the next CapturePayment message\n      // overwrites it (mirrors the Temporal loop awaiting a fresh signal).\n      client\n          .newThrowErrorCommand(job)\n          .errorCode(ERR_INVALID_PAYMENT)\n          .errorMessage(rejection)\n          .send()\n          .join();\n      return;\n    }\n\n    LOG.info(\"validate-payment completed rrn={}\", payment.rrn());\n    client.newCompleteCommand(job).variables(Map.of(VAR_PAYMENT, payment)).send().join();\n  }"
+      },
+      "inference": {
+        "sideEffectClass": "read-only",
+        "summary": "Validates payment amount against order total and throws a BPMN error if invalid, otherwise completes with the payment variable",
+        "confidence": 0.95,
+        "provenance": "llm",
+        "model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        "rationale": "The code slice shows only in-memory operations: reads variables via job.getVariablesAsMap(), deserializes with ObjectMapper.convertValue, performs a pure validation check (validationError comparison), and logs. No external I/O is visible—no HTTP calls, database writes, or delegation to mutating operations. The call graph confirms only ObjectMapper.convertValue and Logger calls. The worker either throws a BPMN error or completes with the same payment data it received. This is a pure validation worker with no side effects."
+      },
+      "migration": {
+        "coverageClass": "ASSISTED",
+        "suggestedRetryPolicy": {
+          "maximumAttempts": 5
+        },
+        "flags": [
+          "autoComplete=false + throwError -> typed error branch to user-task"
+        ]
+      }
+    }
+  ],
+  "processes": [
+    {
+      "id": "order-processing",
+      "name": "Order Processing",
+      "file": "src/main/resources/models/order-processing.bpmn",
+      "executable": true,
+      "elements": [
+        {
+          "id": "StartEvent_1",
+          "name": "Order received",
+          "type": "startEvent",
+          "outgoing": [
+            "Flow_start_received"
+          ]
+        },
+        {
+          "id": "Task_UpdateReceived",
+          "name": "Dashboard: ORDER_RECEIVED",
+          "type": "serviceTask",
+          "jobType": "update-dashboard",
+          "incoming": [
+            "Flow_start_received"
+          ],
+          "outgoing": [
+            "Flow_received_validate"
+          ]
+        },
+        {
+          "id": "Task_ValidateOrder",
+          "name": "Validate order (Commerce API)",
+          "type": "serviceTask",
+          "jobType": "validate-order",
+          "retries": "2147483647",
+          "incoming": [
+            "Flow_received_validate",
+            "Flow_catchcorr_validate"
+          ],
+          "outgoing": [
+            "Flow_validate_pending"
+          ]
+        },
+        {
+          "id": "Task_UpdatePaymentPending",
+          "name": "Dashboard: PAYMENT_PENDING",
+          "type": "serviceTask",
+          "jobType": "update-dashboard",
+          "incoming": [
+            "Flow_validate_pending"
+          ],
+          "outgoing": [
+            "Flow_pending_catchpay"
+          ]
+        },
+        {
+          "id": "Catch_Payment",
+          "name": "Await CapturePayment",
+          "type": "intermediateCatchEvent",
+          "eventType": "message",
+          "eventRef": "Message_CapturePayment",
+          "incoming": [
+            "Flow_pending_catchpay",
+            "Flow_bnd_catchpay"
+          ],
+          "outgoing": [
+            "Flow_catchpay_validatepay"
+          ]
+        },
+        {
+          "id": "Task_ValidatePayment",
+          "name": "Validate payment RRN",
+          "type": "serviceTask",
+          "jobType": "validate-payment",
+          "retries": "5",
+          "incoming": [
+            "Flow_catchpay_validatepay"
+          ],
+          "outgoing": [
+            "Flow_validatepay_captured"
+          ]
+        },
+        {
+          "id": "Task_UpdateCaptured",
+          "name": "Dashboard: PAYMENT_CAPTURED",
+          "type": "serviceTask",
+          "jobType": "update-dashboard",
+          "incoming": [
+            "Flow_validatepay_captured"
+          ],
+          "outgoing": [
+            "Flow_captured_enrich"
+          ]
+        },
+        {
+          "id": "Task_Enrich",
+          "name": "Enrich with PIM",
+          "type": "serviceTask",
+          "jobType": "enrich-order",
+          "retries": "2147483647",
+          "incoming": [
+            "Flow_captured_enrich"
+          ],
+          "outgoing": [
+            "Flow_enrich_publish"
+          ]
+        },
+        {
+          "id": "Task_Publish",
+          "name": "Publish to fulfillment",
+          "type": "serviceTask",
+          "jobType": "publish-fulfillment",
+          "retries": "2147483647",
+          "incoming": [
+            "Flow_enrich_publish"
+          ],
+          "outgoing": [
+            "Flow_publish_fulfilled"
+          ]
+        },
+        {
+          "id": "Task_UpdateFulfilled",
+          "name": "Dashboard: FULFILLED",
+          "type": "serviceTask",
+          "jobType": "update-dashboard",
+          "incoming": [
+            "Flow_publish_fulfilled"
+          ],
+          "outgoing": [
+            "Flow_fulfilled_end"
+          ]
+        },
+        {
+          "id": "EndEvent_Done",
+          "name": "Order fulfilled",
+          "type": "endEvent",
+          "incoming": [
+            "Flow_fulfilled_end"
+          ]
+        },
+        {
+          "id": "Bnd_InvalidOrder",
+          "name": "INVALID_ORDER",
+          "type": "boundaryEvent",
+          "eventType": "error",
+          "eventRef": "INVALID_ORDER",
+          "attachedTo": "Task_ValidateOrder",
+          "outgoing": [
+            "Flow_bnd_awaitcorr"
+          ]
+        },
+        {
+          "id": "Task_AwaitCorrectionStatus",
+          "name": "Dashboard: AWAITING_CORRECTION",
+          "type": "serviceTask",
+          "jobType": "update-dashboard",
+          "incoming": [
+            "Flow_bnd_awaitcorr"
+          ],
+          "outgoing": [
+            "Flow_awaitcorr_catchcorr"
+          ]
+        },
+        {
+          "id": "Catch_Correction",
+          "name": "Await SupportCorrection",
+          "type": "intermediateCatchEvent",
+          "eventType": "message",
+          "eventRef": "Message_SupportCorrection",
+          "incoming": [
+            "Flow_awaitcorr_catchcorr"
+          ],
+          "outgoing": [
+            "Flow_catchcorr_validate"
+          ]
+        },
+        {
+          "id": "Bnd_InvalidPayment",
+          "name": "INVALID_PAYMENT",
+          "type": "boundaryEvent",
+          "eventType": "error",
+          "eventRef": "INVALID_PAYMENT",
+          "attachedTo": "Task_ValidatePayment",
+          "outgoing": [
+            "Flow_bnd_catchpay"
+          ]
+        },
+        {
+          "id": "SubProcess_Cancel",
+          "name": "Cancellation",
+          "type": "subProcess"
+        },
+        {
+          "id": "Start_Cancel",
+          "name": "CancelOrder",
+          "type": "startEvent",
+          "eventType": "message",
+          "eventRef": "Message_CancelOrder",
+          "outgoing": [
+            "Flow_cancel_1"
+          ]
+        },
+        {
+          "id": "Task_UpdateCancelled",
+          "name": "Dashboard: CANCELLED",
+          "type": "serviceTask",
+          "jobType": "update-dashboard",
+          "incoming": [
+            "Flow_cancel_1"
+          ],
+          "outgoing": [
+            "Flow_cancel_2"
+          ]
+        },
+        {
+          "id": "End_Cancelled",
+          "name": "Cancelled",
+          "type": "endEvent",
+          "eventType": "terminate",
+          "incoming": [
+            "Flow_cancel_2"
+          ]
+        },
+        {
+          "id": "SubProcess_TTL",
+          "name": "Order TTL (30 days)",
+          "type": "subProcess"
+        },
+        {
+          "id": "Start_TTL",
+          "name": "30-day TTL",
+          "type": "startEvent",
+          "eventType": "timer",
+          "timer": "timeDuration=PT720H",
+          "outgoing": [
+            "Flow_ttl_1"
+          ]
+        },
+        {
+          "id": "Task_UpdateExpired",
+          "name": "Dashboard: EXPIRED",
+          "type": "serviceTask",
+          "jobType": "update-dashboard",
+          "incoming": [
+            "Flow_ttl_1"
+          ],
+          "outgoing": [
+            "Flow_ttl_2"
+          ]
+        },
+        {
+          "id": "End_Expired",
+          "name": "Expired",
+          "type": "endEvent",
+          "eventType": "terminate",
+          "incoming": [
+            "Flow_ttl_2"
+          ]
+        }
+      ],
+      "sequenceFlows": [
+        {
+          "id": "Flow_start_received",
+          "source": "StartEvent_1",
+          "target": "Task_UpdateReceived"
+        },
+        {
+          "id": "Flow_received_validate",
+          "source": "Task_UpdateReceived",
+          "target": "Task_ValidateOrder"
+        },
+        {
+          "id": "Flow_validate_pending",
+          "source": "Task_ValidateOrder",
+          "target": "Task_UpdatePaymentPending"
+        },
+        {
+          "id": "Flow_pending_catchpay",
+          "source": "Task_UpdatePaymentPending",
+          "target": "Catch_Payment"
+        },
+        {
+          "id": "Flow_catchpay_validatepay",
+          "source": "Catch_Payment",
+          "target": "Task_ValidatePayment"
+        },
+        {
+          "id": "Flow_validatepay_captured",
+          "source": "Task_ValidatePayment",
+          "target": "Task_UpdateCaptured"
+        },
+        {
+          "id": "Flow_captured_enrich",
+          "source": "Task_UpdateCaptured",
+          "target": "Task_Enrich"
+        },
+        {
+          "id": "Flow_enrich_publish",
+          "source": "Task_Enrich",
+          "target": "Task_Publish"
+        },
+        {
+          "id": "Flow_publish_fulfilled",
+          "source": "Task_Publish",
+          "target": "Task_UpdateFulfilled"
+        },
+        {
+          "id": "Flow_fulfilled_end",
+          "source": "Task_UpdateFulfilled",
+          "target": "EndEvent_Done"
+        },
+        {
+          "id": "Flow_bnd_awaitcorr",
+          "source": "Bnd_InvalidOrder",
+          "target": "Task_AwaitCorrectionStatus"
+        },
+        {
+          "id": "Flow_awaitcorr_catchcorr",
+          "source": "Task_AwaitCorrectionStatus",
+          "target": "Catch_Correction"
+        },
+        {
+          "id": "Flow_catchcorr_validate",
+          "source": "Catch_Correction",
+          "target": "Task_ValidateOrder"
+        },
+        {
+          "id": "Flow_bnd_catchpay",
+          "source": "Bnd_InvalidPayment",
+          "target": "Catch_Payment"
+        },
+        {
+          "id": "Flow_cancel_1",
+          "source": "Start_Cancel",
+          "target": "Task_UpdateCancelled"
+        },
+        {
+          "id": "Flow_cancel_2",
+          "source": "Task_UpdateCancelled",
+          "target": "End_Cancelled"
+        },
+        {
+          "id": "Flow_ttl_1",
+          "source": "Start_TTL",
+          "target": "Task_UpdateExpired"
+        },
+        {
+          "id": "Flow_ttl_2",
+          "source": "Task_UpdateExpired",
+          "target": "End_Expired"
+        }
+      ],
+      "jobTypes": [
+        "enrich-order",
+        "publish-fulfillment",
+        "update-dashboard",
+        "validate-order",
+        "validate-payment"
+      ],
+      "connectors": [],
+      "messages": [
+        "Message_CancelOrder",
+        "Message_CapturePayment",
+        "Message_SupportCorrection"
+      ],
+      "description": "BPMN process \"Order Processing\" (id: order-processing) — executable.\nContains 23 flow node(s) and 18 sequence flow(s): 2 boundaryEvent, 3 endEvent, 2 intermediateCatchEvent, 11 serviceTask, 3 startEvent, 2 subProcess.\nService job types: enrich-order, publish-fulfillment, update-dashboard, validate-order, validate-payment.\nCorrelates message(s): Message_CancelOrder, Message_CapturePayment, Message_SupportCorrection.\n\nFlow:\n  Start: none event \"Order received\"\n  Service task \"Dashboard: ORDER_RECEIVED\" (job type \"update-dashboard\")\n  Service task \"Validate order (Commerce API)\" (job type \"validate-order\")\n  Service task \"Dashboard: PAYMENT_PENDING\" (job type \"update-dashboard\")\n  Catch message event \"Await CapturePayment\" (message \"Message_CapturePayment\")\n  Service task \"Validate payment RRN\" (job type \"validate-payment\")\n  Service task \"Dashboard: PAYMENT_CAPTURED\" (job type \"update-dashboard\")\n  Service task \"Enrich with PIM\" (job type \"enrich-order\")\n  Service task \"Publish to fulfillment\" (job type \"publish-fulfillment\")\n  Service task \"Dashboard: FULFILLED\" (job type \"update-dashboard\")\n  End: none event \"Order fulfilled\"\n  Start: message event \"CancelOrder\" (message \"Message_CancelOrder\")\n  Service task \"Dashboard: CANCELLED\" (job type \"update-dashboard\")\n  End: terminate event \"Cancelled\"\n  Start: timer event \"30-day TTL\" (timeDuration=PT720H)\n  Service task \"Dashboard: EXPIRED\" (job type \"update-dashboard\")\n  End: terminate event \"Expired\"\n\nBoundary events (interrupts / error handling):\n- error event \"INVALID_ORDER\" (error \"INVALID_ORDER\") on \"Validate order (Commerce API)\" routes to Dashboard: AWAITING_CORRECTION\n- error event \"INVALID_PAYMENT\" (error \"INVALID_PAYMENT\") on \"Validate payment RRN\" routes to Await CapturePayment"
+    }
+  ],
+  "decisions": [],
+  "humanTasks": [],
+  "downstreamConsumers": [],
+  "secretsFindings": [],
+  "testOracles": [],
+  "reconciliation": {
+    "bpmnInventoryProvided": true,
+    "declaredJobTypes": [
+      "enrich-order",
+      "publish-fulfillment",
+      "update-dashboard",
+      "validate-order",
+      "validate-payment"
+    ],
+    "matchedJobTypes": [
+      "enrich-order",
+      "publish-fulfillment",
+      "update-dashboard",
+      "validate-order",
+      "validate-payment"
+    ],
+    "jobTypesWithoutWorker": [],
+    "workersWithoutBpmnMatch": [],
+    "connectorJobTypes": [],
+    "lowConfidenceMatches": [
+      "enrich-order",
+      "publish-fulfillment",
+      "update-dashboard",
+      "validate-order",
+      "validate-payment"
+    ],
+    "userTasksInBpmn": []
+  },
+  "classificationNeeded": [
+    {
+      "workerId": "worker:oms-camunda-application:com.oms.workers.CommerceWorkers#validateOrder",
+      "jobType": "validate-order",
+      "ruleFlags": [
+        "autoComplete=false + newThrowErrorCommand",
+        "unresolved callee: ObjectMapper.convertValue"
+      ],
+      "question": "Ground every claim in the provided code slice + call graph (cite it). Return: sideEffectClass; idempotencyKey ONLY if visible in-code; one-line business summary; retry suitability. If any judgment rests on an external-system assumption, set requiresHumanConfirmation=true and lower confidence.",
+      "context": {
+        "varsRead": [],
+        "camundaApiCalls": [
+          "newThrowErrorCommand",
+          "newCompleteCommand"
+        ],
+        "callGraph": [
+          "ObjectMapper.convertValue",
+          "Logger.info",
+          "Logger.warn"
+        ],
+        "codeSliceRedacted": "{\n    Map<String, Object> vars = job.getVariablesAsMap();\n    OrderInput order = objectMapper.convertValue(vars.get(VAR_ORDER), OrderInput.class);\n\n    // Apply any pending SupportCorrection (delivered as correctionItems) before\n    // re-validating — the parity of WorkflowState.ApplyCorrection.\n    order = applyCorrection(order, vars.get(VAR_CORRECTION_ITEMS));\n\n    LOG.info(\"validate-order started orderId={}\", order == null ? null : order.orderId());\n\n    String rejection = validationError(order);\n    if (rejection != null) {\n      LOG.warn(\"Order validation failed: {}\", rejection);\n      // Non-retryable business failure -> correction loop (not a job retry).\n      client\n          .newThrowErrorCommand(job)\n          .errorCode(ERR_INVALID_ORDER)\n          .errorMessage(rejection)\n          .send()\n          .join();\n      return;\n    }\n\n    // Mock commerce validation is idempotent; echo the (validated) order back\n    // and clear the consumed correction.\n    LOG.info(\"validate-order completed orderId={}\", order.orderId());\n    Map<String, Object> out = new HashMap<>();\n    out.put(VAR_ORDER, order);\n    out.put(VAR_CORRECTION_ITEMS, null);\n    client.newCompleteCommand(job).variables(out).send().join();\n  }"
+      },
+      "contextHash": "sha256:d38657b85c1bf23d32b08e3853fe4455e91671a994cba60ad14cee5653cd7fc6"
+    },
+    {
+      "workerId": "worker:oms-camunda-application:com.oms.workers.OmsWorkers#updateDashboard",
+      "jobType": "update-dashboard",
+      "ruleFlags": [
+        "reaches I/O sink via: DashboardRepository.upsert"
+      ],
+      "question": "Ground every claim in the provided code slice + call graph (cite it). Return: sideEffectClass; idempotencyKey ONLY if visible in-code; one-line business summary; retry suitability. If any judgment rests on an external-system assumption, set requiresHumanConfirmation=true and lower confidence.",
+      "context": {
+        "varsRead": [],
+        "camundaApiCalls": [],
+        "callGraph": [
+          "Logger.error",
+          "Logger.info",
+          "DashboardRepository.upsert",
+          "Logger.warn"
+        ],
+        "codeSliceRedacted": "{\n    String orderId = String.valueOf(job.getVariablesAsMap().get(VAR_ORDER_ID));\n    String statusHeader = job.getCustomHeaders().get(HEADER_STATUS);\n\n    OrderStatus status;\n    try {\n      status = OrderStatus.fromString(statusHeader);\n    } catch (RuntimeException e) {\n      // Matches ValidationFailure on an unsupported dashboard status.\n      LOG.error(\"Unsupported dashboard status header: {}\", statusHeader);\n      throw e;\n    }\n\n    LOG.info(\"update-dashboard orderId={} status={}\", orderId, status);\n    try {\n      dashboardRepo.upsert(new DashboardStatus(orderId, status.name(), Instant.now()));\n    } catch (RuntimeException e) {\n      LOG.warn(\"dashboard update failed; continuing orderId={} status={}\", orderId, status, e);\n    }\n  }",
+        "sinkChain": [
+          {
+            "method": "JdbcDashboardRepository.upsert",
+            "file": "src/main/java/com/oms/dashboard/JdbcDashboardRepository.java",
+            "code": "@Override\n  public void upsert(DashboardStatus status) {\n    Timestamp updatedAt = Timestamp.from(status.updatedAt());\n    if (update(status.orderId(), status.status(), updatedAt) == 0) {\n      // Row absent: try to insert. If a concurrent writer inserted it first, the\n      // primary key rejects our insert (DuplicateKeyException) and we fall back\n      // to an update — so the write is never silently lost to a race.\n      try {\n        insert(status.orderId(), status.status(), updatedAt);\n      } catch (DuplicateKeyException e) {\n        update(status.orderId(), status.status(), updatedAt);\n      }\n    }\n  }"
+          }
+        ]
+      },
+      "contextHash": "sha256:84735c6b80f251e1a5b6f450012bde37a91a4123ff72eff93f277200a0df82fd"
+    },
+    {
+      "workerId": "worker:oms-camunda-application:com.oms.workers.OmsWorkers#validatePayment",
+      "jobType": "validate-payment",
+      "ruleFlags": [
+        "autoComplete=false + newThrowErrorCommand",
+        "unresolved callee: ObjectMapper.convertValue"
+      ],
+      "question": "Ground every claim in the provided code slice + call graph (cite it). Return: sideEffectClass; idempotencyKey ONLY if visible in-code; one-line business summary; retry suitability. If any judgment rests on an external-system assumption, set requiresHumanConfirmation=true and lower confidence.",
+      "context": {
+        "varsRead": [],
+        "camundaApiCalls": [
+          "newThrowErrorCommand",
+          "newCompleteCommand"
+        ],
+        "callGraph": [
+          "ObjectMapper.convertValue",
+          "Logger.info",
+          "Logger.warn"
+        ],
+        "codeSliceRedacted": "{\n    Map<String, Object> vars = job.getVariablesAsMap();\n    PaymentInput payment = objectMapper.convertValue(vars.get(VAR_PAYMENT), PaymentInput.class);\n    OrderInput order = objectMapper.convertValue(vars.get(VAR_ORDER), OrderInput.class);\n    double expectedAmount = order == null ? 0 : order.totalAmount();\n\n    LOG.info(\"validate-payment started rrn={}\", payment == null ? null : payment.rrn());\n\n    String rejection = validationError(payment, expectedAmount);\n    if (rejection != null) {\n      LOG.warn(\"Payment validation failed: {}\", rejection);\n      // BPMN error -> boundary event loops back to the CapturePayment wait. No\n      // need to clear the payment variable: the next CapturePayment message\n      // overwrites it (mirrors the Temporal loop awaiting a fresh signal).\n      client\n          .newThrowErrorCommand(job)\n          .errorCode(ERR_INVALID_PAYMENT)\n          .errorMessage(rejection)\n          .send()\n          .join();\n      return;\n    }\n\n    LOG.info(\"validate-payment completed rrn={}\", payment.rrn());\n    client.newCompleteCommand(job).variables(Map.of(VAR_PAYMENT, payment)).send().join();\n  }"
+      },
+      "contextHash": "sha256:8a2a2411d0b38559dfc48dc4bc895ee07cdad0ce70898626187e2c80c4dbb872"
+    }
+  ],
+  "gaps": [
+    {
+      "severity": "major",
+      "code": "coverage-gap",
+      "message": "raw registration markers (6) exceed recognized worker anchors (5) — a worker registration may not have been parsed"
+    },
+    {
+      "severity": "info",
+      "code": "no-test-oracles",
+      "message": "no input→output test oracles were extracted; generated code has no dual-run seed from existing tests"
+    }
+  ]
+}
