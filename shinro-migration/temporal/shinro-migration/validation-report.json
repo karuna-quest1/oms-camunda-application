@@ -1,0 +1,308 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "codegen-validation-report",
+  "source": {
+    "module": "oms-camunda-application",
+    "generatedProject": "/Users/surya/Desktop/work/application-testing/oms-camunda-application/shinro-migration/temporal",
+    "findingsModule": "oms-camunda-application",
+    "manifestProvided": true,
+    "assessmentProvided": true,
+    "mode": "manifest",
+    "targetLanguage": "go",
+    "llm": {
+      "used": true
+    },
+    "validatedAt": "2026-10-07T13:04:20Z",
+    "validatorVersion": "0.1.0"
+  },
+  "summary": {
+    "findings": 22,
+    "errors": 1,
+    "warnings": 10,
+    "infos": 11,
+    "workersInSource": 5,
+    "mappingsChecked": 25,
+    "coverageGaps": 0,
+    "lowConfidenceFindings": 21,
+    "reviewFindings": 21,
+    "verdict": "fail"
+  },
+  "findings": [
+    {
+      "pass": "A",
+      "code": "declared-gap",
+      "severity": "info",
+      "summary": "JdbcDashboardRepository needs a database DSN not present in the source repo; default DashboardWriter fails loudly with NOT_IMPLEMENTED (SQLDashboardWriter ports the upsert SQL but no driver is wired).",
+      "elementId": "order-processing",
+      "jobType": "update-dashboard"
+    },
+    {
+      "pass": "R",
+      "code": "activity-granularity",
+      "severity": "info",
+      "summary": "UpdateDashboard activity is called 7 times per workflow execution with identical retry behavior",
+      "location": {
+        "file": "workflows/order_processing.go",
+        "line": 185
+      },
+      "detail": "[low] The workflow calls UpdateDashboard at lines 185, 204, 234, 289, 312, 143, and 131 (seven status transitions). Each call creates a separate activity in the event history. If dashboard updates are best-effort (as the test at line 57 suggests) and always succeed (applied=true even on error), consider batching the status transitions into a single final UpdateDashboard call, or marking it as a local activity to reduce history growth. The current design trades history size for fine-grained visibility—verify this tradeoff is intentional.",
+      "provenance": "llm",
+      "confidence": 0.5
+    },
+    {
+      "pass": "R",
+      "code": "activity-granularity",
+      "severity": "info",
+      "summary": "UpdateDashboard uses time.Now() inside the activity, not passed from workflow",
+      "location": {
+        "file": "activities/update_dashboard.go",
+        "line": 148
+      },
+      "detail": "[medium] The activity calls time.Now() to generate the updatedAt timestamp (line 148). This is acceptable for activities (activities are non-deterministic by design), but it means retries will write different timestamps for the same logical event, which may confuse dashboard consumers or auditing. Best practice: pass the timestamp from the workflow (using workflow.Now(ctx)) so the dashboard timestamp reflects workflow time, not retry time. This also makes the activity fully deterministic and easier to test. (not corroborated by the deterministic analysis (advisory only — the AST passes are authoritative on determinism/concurrency))",
+      "provenance": "llm",
+      "confidence": 0.75
+    },
+    {
+      "pass": "R",
+      "code": "activity-idempotency",
+      "severity": "info",
+      "summary": "EnrichOrder appears to be pure logic but marked 'read-only-unverified' in source",
+      "location": {
+        "file": "activities/enrich_order.go"
+      },
+      "detail": "[info] The source worker 'enrich-order' is marked 'read-only-unverified', suggesting it may call an external service in the original Camunda app. However, the generated code (not provided in full listing) appears to use in-memory sku/brand generation. If the production implementation fetches metadata from an external catalog, ensure that lookup is idempotent (e.g., keyed by itemId) and safe to retry.",
+      "provenance": "llm",
+      "confidence": 0.3
+    },
+    {
+      "pass": "R",
+      "code": "activity-idempotency",
+      "severity": "warn",
+      "summary": "PublishFulfillment activity lacks explicit idempotency protection in the publisher interface",
+      "location": {
+        "file": "activities/publish_fulfillment.go",
+        "line": 75
+      },
+      "detail": "[high] The activity correctly defines an idempotency key (eventId) and documents that consumers must dedupe, but the FulfillmentPublisher interface has no mechanism to enforce at-least-once semantics. For production, the real publisher implementation must either: (1) use a message broker with idempotency keys (e.g., Kafka message key, Pub/Sub deduplication ID), or (2) implement application-level deduplication (e.g., store published eventIds in a database before publishing). Document this requirement in the interface or add a reference implementation that demonstrates safe at-least-once handling.",
+      "provenance": "llm",
+      "confidence": 0.85
+    },
+    {
+      "pass": "R",
+      "code": "activity-idempotency",
+      "severity": "warn",
+      "summary": "PublishFulfillment activity lacks idempotency protection for side-effecting publish operations",
+      "location": {
+        "file": "activities/publish_fulfillment.go"
+      },
+      "detail": "[high] The activity is marked 'read-only-unverified' in source metadata but publishes messages to a fulfillment topic. Implement idempotency protection: either (1) use the deterministic eventId as an idempotency key in the publisher interface to prevent duplicate publishes, or (2) ensure the FulfillmentPublisher implementation deduplicates at the infrastructure layer (e.g., transactional outbox or broker deduplication with the eventId). Document that consumers MUST deduplicate on EventId for at-least-once safety.",
+      "provenance": "llm",
+      "confidence": 0.95
+    },
+    {
+      "pass": "R",
+      "code": "activity-idempotency",
+      "severity": "warn",
+      "summary": "SQLDashboardWriter upsert logic may lose updates under high concurrency",
+      "location": {
+        "file": "activities/update_dashboard.go",
+        "line": 64
+      },
+      "detail": "[medium] The upsert pattern (update-first, insert-on-miss, update-on-conflict) is correct for idempotency, but the fallback update on line 79 silently discards the error if the second update fails. If the second update fails (e.g., connection lost between insert and fallback update), the activity succeeds but the dashboard row may have stale data. Recommendation: check and return the error from the fallback update (line 82 returns uerr, which is correct) but ensure the caller (UpdateDashboard) handles this as a retryable failure instead of swallowing it per the current best-effort logic. Alternatively, use a database-native upsert (INSERT ... ON CONFLICT DO UPDATE for PostgreSQL, or MERGE for others) to make the operation atomic and avoid the race window.",
+      "provenance": "llm",
+      "confidence": 0.65
+    },
+    {
+      "pass": "R",
+      "code": "activity-idempotency",
+      "severity": "warn",
+      "summary": "UpdateDashboard activity is best-effort and silently swallows write failures, risking inconsistent dashboard state",
+      "location": {
+        "file": "activities/oms_orders_test.go",
+        "line": 57
+      },
+      "detail": "[medium] The test at line 57-71 validates that dashboard write failures are swallowed (applied=true even on error). While this matches source behavior, it means retries after transient failures will succeed without applying the update, leaving the dashboard stale. Consider either: (1) returning the error so Temporal retries the activity until the write succeeds, or (2) if best-effort is a hard requirement, document that the dashboard is eventually-consistent and may miss updates during outages. The current 'idempotent-with-key' source classification suggests upsert-based idempotency is intended—verify the DashboardWriter.Upsert implementation is actually idempotent. (could not confirm the cited file in the generated project)",
+      "provenance": "llm",
+      "confidence": 0.9
+    },
+    {
+      "pass": "R",
+      "code": "activity-idempotency",
+      "severity": "warn",
+      "summary": "UpdateDashboard activity swallows write failures, making projection drift silent",
+      "location": {
+        "file": "activities/update_dashboard.go",
+        "line": 148
+      },
+      "detail": "[high] The activity logs dashboard write failures but always returns success (line 154). While the comment says 'best-effort' and 'non-fatal', this masks permanent failures (e.g., connection pool exhausted, schema mismatch, permission denied) that should trigger retries. The source intent was to avoid blocking orders on dashboard outages, but Temporal's retry policy can handle transient failures while still succeeding eventually. Recommendation: return the error for retryable failures (let the activity retry policy handle transients), and only swallow the error after exhausting retries or for known non-retryable cases. Alternatively, document that this design choice means the dashboard may drift indefinitely if the database is misconfigured.",
+      "provenance": "llm",
+      "confidence": 0.9
+    },
+    {
+      "pass": "R",
+      "code": "activity-idempotency",
+      "severity": "info",
+      "summary": "ValidateOrder and ValidatePayment are pure read-only validation, inherently idempotent",
+      "location": {
+        "file": "activities/validate_order.go",
+        "line": 30
+      },
+      "detail": "[info] These activities perform pure in-memory validation with no external side effects. They are idempotent by design and safe to retry. No changes needed.",
+      "provenance": "llm",
+      "confidence": 1
+    },
+    {
+      "pass": "R",
+      "code": "activity-payload-size",
+      "severity": "info",
+      "summary": "EnrichOrder and PublishFulfillment pass full order items arrays through activity inputs",
+      "location": {
+        "file": "activities/publish_fulfillment.go",
+        "line": 60
+      },
+      "detail": "[low] The activities receive and return full OrderInput/OrderItem slices. For typical orders (10-100 items), this is fine. If orders can have hundreds or thousands of line items, consider passing a reference (e.g., order ID) and fetching the items inside the activity to keep workflow history compact. The source workers are marked 'read-only' / 'read-only-unverified', suggesting they may already fetch data, but the generated code uses in-memory structures. Verify the expected maximum item count and payload size (workflow history includes all activity inputs/outputs). If item count can exceed ~1000, refactor to pass references.",
+      "provenance": "llm",
+      "confidence": 0.4
+    },
+    {
+      "pass": "R",
+      "code": "activity-retry",
+      "severity": "info",
+      "summary": "ValidateOrder and ValidatePayment document retry count 5 but retry policy not shown",
+      "location": {
+        "file": "activities/validate_payment.go",
+        "line": 22
+      },
+      "detail": "[low] The comment on line 21-22 references 'retry count (5)' from the source Camunda worker, but the activity registration (not provided) must explicitly set this retry policy. If the default Temporal activity retry policy is used (unlimited retries with exponential backoff), transient/system failures (e.g., nil pointer panic) will retry indefinitely, not 5 times. Verify the worker registration sets RetryPolicy with MaximumAttempts=5 for these activities to match the source behavior.",
+      "provenance": "llm",
+      "confidence": 0.5
+    },
+    {
+      "pass": "R",
+      "code": "activity-timeout",
+      "severity": "info",
+      "summary": "All activities share a single 5-minute StartToCloseTimeout without task-specific tuning",
+      "location": {
+        "file": "workflows/order_processing.go",
+        "line": 69
+      },
+      "detail": "[low] Line 69 applies a 5-minute StartToCloseTimeout to all activities via the base options. Per the rubric, timeout settings should be activity-specific. Verify that 5 minutes is appropriate for each activity: ValidateOrder, ValidatePayment, EnrichOrder, PublishFulfillment, UpdateDashboard. If some activities (e.g., EnrichOrder calling an external PIM) may take longer, or others (e.g., UpdateDashboard local DB write) should be much shorter, configure per-activity timeouts. The current uniform policy may cause premature timeouts or allow slow activities to run too long.",
+      "provenance": "llm",
+      "confidence": 0.6
+    },
+    {
+      "pass": "R",
+      "code": "activity-timeout",
+      "severity": "warn",
+      "summary": "No activity timeout configuration visible in activity registration",
+      "detail": "[medium] The activities (ValidateOrder, ValidatePayment, EnrichOrder, PublishFulfillment, UpdateDashboard) are defined but their registration and timeout policies are not shown in the provided source. The source workers document retry policies (retry count 5 for validate-payment), but Start-To-Close timeouts are not visible. For production: (1) ensure each activity has an explicit Start-To-Close timeout appropriate to its upstream SLA, (2) PublishFulfillment and UpdateDashboard should have timeouts that account for broker/database latency under load, (3) ValidateOrder/ValidatePayment are pure logic and can use short timeouts (e.g., 10s), (4) EnrichOrder's timeout depends on whether it becomes a real external lookup. Review the worker registration code (not provided) to confirm these are set.",
+      "provenance": "llm",
+      "confidence": 0.7
+    },
+    {
+      "pass": "R",
+      "code": "error-handling",
+      "severity": "info",
+      "summary": "UpdateDashboard returns error for invalid status but documents best-effort non-fatal semantics",
+      "location": {
+        "file": "activities/update_dashboard.go",
+        "line": 144
+      },
+      "detail": "[low] The activity returns an error for unsupported dashboard status (line 144), treating it as a retryable failure (comment line 136 says 'we return a plain (retryable) error'). However, an invalid status is a programming error (the workflow passed the wrong enum value), not a transient failure. This will retry up to the activity retry limit and fail the workflow if the status is truly invalid. Recommendation: return a NonRetryableApplicationError for invalid status to fail fast, or validate the status in the workflow before calling the activity. The current behavior (retry 5 times then fail) is acceptable but wastes task slots.",
+      "provenance": "llm",
+      "confidence": 0.6
+    },
+    {
+      "pass": "R",
+      "code": "error-handling",
+      "severity": "warn",
+      "summary": "Workflow returns typed TERMINATED error for cancel/TTL subprocesses but lacks graceful cleanup or compensation logic",
+      "location": {
+        "file": "workflows/order_processing.go",
+        "line": 22
+      },
+      "detail": "[medium] The ErrTerminated error at line 22 ends the workflow immediately after updating the dashboard (lines 136, 148). If activities are in-flight when the interrupt fires (e.g., ValidateOrder running at line 198 when CancelOrder arrives), they are abandoned without cleanup. Verify whether: (1) in-flight activities should be cancelled (use workflow.WithCancel and cancel the context when an interrupt fires), or (2) the interrupt should wait for the current activity to complete before terminating. The current race at line 189/238 checks interrupts only between activities, not during them—consider checking during long-running activities via heartbeat or cancellation.",
+      "provenance": "llm",
+      "confidence": 0.7
+    },
+    {
+      "pass": "R",
+      "code": "payload-size",
+      "severity": "error",
+      "summary": "Order and payment payloads are passed through workflow history repeatedly, risking payload size limits for large orders",
+      "location": {
+        "file": "workflows/order_processing.go",
+        "line": 62
+      },
+      "detail": "[critical] The workflow receives the full OrderInput at line 62 and passes it to activities at lines 198, 272, 299, 306. Each activity invocation serializes the order into the event history. For orders with hundreds of items (each item carrying SKU/brand after enrichment), the cumulative payload size across 5+ activity invocations could approach the 2MB event history limit. Mitigate by: (1) passing only the orderID to activities and having them fetch the order from a data store, or (2) storing the order in a side channel (e.g., S3) and passing a reference, or (3) documenting a maximum order size (e.g., 100 items) and enforcing it in ValidateOrder. The current design is safe only for small orders.",
+      "provenance": "llm",
+      "confidence": 0.8
+    },
+    {
+      "pass": "R",
+      "code": "retry-policy",
+      "severity": "warn",
+      "summary": "ValidatePayment activity has MaximumAttempts=5 but no justification for hard cap on retryable errors",
+      "location": {
+        "file": "workflows/order_processing.go",
+        "line": 71
+      },
+      "detail": "[high] Line 71 sets MaximumAttempts=5 for ValidatePayment per migration guidance, but transient failures (e.g., commerce API timeouts) should be retried until StartToCloseTimeout expires, not capped at 5 attempts. The BPMN boundary error INVALID_PAYMENT is non-retryable (handled at line 274), so the retry policy only affects transient errors. Either: (1) remove the MaximumAttempts cap and rely on the 5-minute StartToCloseTimeout, or (2) if 5 attempts is a business requirement, document why transient payment validation failures should give up after 5 tries. The current policy may cause workflows to fail on transient network blips that would resolve with more retries.",
+      "provenance": "llm",
+      "confidence": 0.85
+    },
+    {
+      "pass": "R",
+      "code": "signal-idempotency",
+      "severity": "warn",
+      "summary": "Signal handlers lack explicit idempotency protection against duplicate signal deliveries",
+      "location": {
+        "file": "workflows/order_processing.go",
+        "line": 100
+      },
+      "detail": "[medium] The signal delivery slots (capSlot/corrSlot at lines 100-125) overwrite on every Receive, so duplicate signals will be processed multiple times if they arrive before consumption. For CapturePayment (line 100), a duplicate signal during the Await at line 245 will overwrite capSlot, potentially losing the first payment. For SupportCorrection (line 114), duplicates during the Await at line 210 similarly overwrite. Implement idempotency: (1) track consumed signal IDs (add a unique correlation ID to each signal type) and skip already-seen deliveries, or (2) document that signal senders must ensure exactly-once delivery semantics, or (3) verify that overwriting is acceptable (e.g., latest correction wins). The current design is safe only if the signal sender deduplicates.",
+      "provenance": "llm",
+      "confidence": 0.75
+    },
+    {
+      "pass": "R",
+      "code": "workflow-determinism",
+      "severity": "info",
+      "summary": "EnrichOrder activity appears deterministic based on input, marked 'read-only-unverified' in source metadata",
+      "location": {
+        "file": "activities/enrich_order.go",
+        "line": 21
+      },
+      "detail": "[info] The EnrichOrder activity at line 21 generates SKU and brand codes deterministically from the order ID and item ID (lines 30, 34). The source metadata marks it 'read-only-unverified'. If enrichment should call an external PIM system (as the comment 'Enrich with PIM' at line 297 suggests), the current implementation is a stub. Verify whether: (1) the deterministic logic is correct and PIM is intentionally skipped, or (2) the activity should call an external PIM API (making it non-deterministic and side-effecting). If (2), ensure idempotency (e.g., cache PIM results keyed by item ID) and update the retry policy.",
+      "provenance": "llm",
+      "confidence": 0.6
+    },
+    {
+      "pass": "R",
+      "code": "workflow-id-strategy",
+      "severity": "info",
+      "summary": "Workflow ID equals orderID but no explicit idempotency-via-uniqueness enforcement is documented",
+      "location": {
+        "file": "cmd/starter/main.go",
+        "line": 50
+      },
+      "detail": "[low] The starter at line 50 sets the workflow ID to orderID, providing natural deduplication (starting the same orderID twice will fail with WorkflowExecutionAlreadyStarted). Document this behavior explicitly: callers must ensure orderID uniqueness per distinct order, and retrying a start with the same orderID is safe (idempotent). If orders can be resubmitted after completion (e.g., order amendments), consider appending a version suffix or using a different ID strategy. The current design assumes one workflow execution per order for its entire lifetime.",
+      "provenance": "llm",
+      "confidence": 0.5
+    },
+    {
+      "pass": "R",
+      "code": "workflow-timeout",
+      "severity": "warn",
+      "summary": "No workflow execution timeout is set, but 30-day TTL timer implies a bounded lifetime",
+      "location": {
+        "file": "workflows/order_processing.go",
+        "line": 16
+      },
+      "detail": "[medium] The orderTTL is 720 hours (30 days) at line 16, but no workflow execution timeout is configured. If the TTL subprocess fails to fire (e.g., due to a bug), workflows could run indefinitely. Set an explicit workflow execution timeout slightly beyond the TTL (e.g., 32 days) as a backstop. Alternatively, if workflows are expected to complete much faster (e.g., hours), set a tighter timeout and rely on the TTL timer only for the payment-wait phase. The current design has no upper bound on workflow duration outside the timer logic.",
+      "provenance": "llm",
+      "confidence": 0.7
+    }
+  ],
+  "limitations": []
+}

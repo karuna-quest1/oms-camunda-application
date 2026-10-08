@@ -1,0 +1,206 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "codegen-mapping-manifest",
+  "source": {
+    "module": "shinro-migration/oms-camunda-application",
+    "generatedAt": "2026-10-07T12:58:00Z",
+    "generatorVersion": "shinro-agent"
+  },
+  "target": {
+    "language": "go",
+    "modulePath": "shinro-migration/oms-camunda-application",
+    "projectRoot": "."
+  },
+  "mappings": [
+    {
+      "source": { "kind": "worker", "jobType": "update-dashboard", "processId": "order-processing", "workerId": "worker:oms-camunda-application:com.oms.workers.OmsWorkers#updateDashboard" },
+      "target": { "construct": "activity", "family": "activity", "symbol": "shinro-migration/oms-camunda-application/activities.UpdateDashboard", "file": "activities/update_dashboard.go", "startLine": 137 },
+      "decisions": {
+        "sideEffectClass": "idempotent-with-key",
+        "idempotencyKey": "orderId",
+        "coverageClass": "ASSISTED",
+        "reviewRequired": true
+      },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "worker", "jobType": "validate-order", "processId": "order-processing", "workerId": "worker:oms-camunda-application:com.oms.workers.CommerceWorkers#validateOrder" },
+      "target": { "construct": "activity", "family": "activity", "symbol": "shinro-migration/oms-camunda-application/activities.ValidateOrder", "file": "activities/validate_order.go", "startLine": 30 },
+      "decisions": {
+        "sideEffectClass": "read-only",
+        "retryPolicy": { "maximumAttempts": 2147483647 },
+        "coverageClass": "ASSISTED",
+        "reviewRequired": true
+      },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "worker", "jobType": "validate-payment", "processId": "order-processing", "workerId": "worker:oms-camunda-application:com.oms.workers.OmsWorkers#validatePayment" },
+      "target": { "construct": "activity", "family": "activity", "symbol": "shinro-migration/oms-camunda-application/activities.ValidatePayment", "file": "activities/validate_payment.go", "startLine": 23 },
+      "decisions": {
+        "sideEffectClass": "read-only",
+        "retryPolicy": { "maximumAttempts": 5, "nonRetryable": ["INVALID_PAYMENT"] },
+        "coverageClass": "ASSISTED",
+        "reviewRequired": true
+      },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "worker", "jobType": "enrich-order", "processId": "order-processing", "workerId": "worker:oms-camunda-application:com.oms.workers.OmsWorkers#enrichOrder" },
+      "target": { "construct": "activity", "family": "activity", "symbol": "shinro-migration/oms-camunda-application/activities.EnrichOrder", "file": "activities/enrich_order.go", "startLine": 21 },
+      "decisions": {
+        "sideEffectClass": "read-only-unverified",
+        "retryPolicy": { "maximumAttempts": 2147483647 },
+        "coverageClass": "AUTO",
+        "reviewRequired": true
+      },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "worker", "jobType": "publish-fulfillment", "processId": "order-processing", "workerId": "worker:oms-camunda-application:com.oms.workers.OmsWorkers#publishToFulfillment" },
+      "target": { "construct": "activity", "family": "activity", "symbol": "shinro-migration/oms-camunda-application/activities.PublishFulfillment", "file": "activities/publish_fulfillment.go", "startLine": 60 },
+      "decisions": {
+        "sideEffectClass": "read-only-unverified",
+        "idempotencyKey": "fulfillment:<orderId>:v1",
+        "retryPolicy": { "maximumAttempts": 2147483647 },
+        "coverageClass": "AUTO",
+        "reviewRequired": true
+      },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "bpmnElement", "elementId": "Task_UpdateReceived", "processId": "order-processing", "classificationKey": "serviceTask" },
+      "target": { "construct": "activity", "family": "activity", "symbol": "shinro-migration/oms-camunda-application/activities.UpdateDashboard", "file": "activities/update_dashboard.go", "startLine": 137 },
+      "decisions": { "sideEffectClass": "idempotent-with-key", "idempotencyKey": "orderId", "coverageClass": "ASSISTED", "reviewRequired": true },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "bpmnElement", "elementId": "Task_ValidateOrder", "processId": "order-processing", "classificationKey": "serviceTask" },
+      "target": { "construct": "activity", "family": "activity", "symbol": "shinro-migration/oms-camunda-application/activities.ValidateOrder", "file": "activities/validate_order.go", "startLine": 30 },
+      "decisions": { "sideEffectClass": "read-only", "retryPolicy": { "maximumAttempts": 2147483647 }, "coverageClass": "ASSISTED", "reviewRequired": true },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "bpmnElement", "elementId": "Task_UpdatePaymentPending", "processId": "order-processing", "classificationKey": "serviceTask" },
+      "target": { "construct": "activity", "family": "activity", "symbol": "shinro-migration/oms-camunda-application/activities.UpdateDashboard", "file": "activities/update_dashboard.go", "startLine": 137 },
+      "decisions": { "sideEffectClass": "idempotent-with-key", "idempotencyKey": "orderId", "coverageClass": "ASSISTED", "reviewRequired": true },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "bpmnElement", "elementId": "Catch_Payment", "processId": "order-processing" },
+      "target": { "construct": "signalHandler", "family": "signalHandler", "symbol": "shinro-migration/oms-camunda-application/workflows.OrderProcessingWorkflow", "file": "workflows/order_processing.go", "startLine": 100 },
+      "decisions": { "sideEffectClass": "read-only", "coverageClass": "AUTO", "reviewRequired": false },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "bpmnElement", "elementId": "Task_ValidatePayment", "processId": "order-processing", "classificationKey": "serviceTask" },
+      "target": { "construct": "activity", "family": "activity", "symbol": "shinro-migration/oms-camunda-application/activities.ValidatePayment", "file": "activities/validate_payment.go", "startLine": 23 },
+      "decisions": { "sideEffectClass": "read-only", "retryPolicy": { "maximumAttempts": 5, "nonRetryable": ["INVALID_PAYMENT"] }, "coverageClass": "ASSISTED", "reviewRequired": true },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "bpmnElement", "elementId": "Task_UpdateCaptured", "processId": "order-processing", "classificationKey": "serviceTask" },
+      "target": { "construct": "activity", "family": "activity", "symbol": "shinro-migration/oms-camunda-application/activities.UpdateDashboard", "file": "activities/update_dashboard.go", "startLine": 137 },
+      "decisions": { "sideEffectClass": "idempotent-with-key", "idempotencyKey": "orderId", "coverageClass": "ASSISTED", "reviewRequired": true },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "bpmnElement", "elementId": "Task_Enrich", "processId": "order-processing", "classificationKey": "serviceTask" },
+      "target": { "construct": "activity", "family": "activity", "symbol": "shinro-migration/oms-camunda-application/activities.EnrichOrder", "file": "activities/enrich_order.go", "startLine": 21 },
+      "decisions": { "sideEffectClass": "read-only-unverified", "retryPolicy": { "maximumAttempts": 2147483647 }, "coverageClass": "AUTO", "reviewRequired": true },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "bpmnElement", "elementId": "Task_Publish", "processId": "order-processing", "classificationKey": "serviceTask" },
+      "target": { "construct": "activity", "family": "activity", "symbol": "shinro-migration/oms-camunda-application/activities.PublishFulfillment", "file": "activities/publish_fulfillment.go", "startLine": 60 },
+      "decisions": { "sideEffectClass": "read-only-unverified", "idempotencyKey": "fulfillment:<orderId>:v1", "retryPolicy": { "maximumAttempts": 2147483647 }, "coverageClass": "AUTO", "reviewRequired": true },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "bpmnElement", "elementId": "Task_UpdateFulfilled", "processId": "order-processing", "classificationKey": "serviceTask" },
+      "target": { "construct": "activity", "family": "activity", "symbol": "shinro-migration/oms-camunda-application/activities.UpdateDashboard", "file": "activities/update_dashboard.go", "startLine": 137 },
+      "decisions": { "sideEffectClass": "idempotent-with-key", "idempotencyKey": "orderId", "coverageClass": "ASSISTED", "reviewRequired": true },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "bpmnElement", "elementId": "Bnd_InvalidOrder", "processId": "order-processing" },
+      "target": { "construct": "comment", "family": "comment", "symbol": "shinro-migration/oms-camunda-application/workflows.isBpmnError", "file": "workflows/order_processing.go", "startLine": 347 },
+      "decisions": { "sideEffectClass": "read-only", "coverageClass": "AUTO", "reviewRequired": false },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "bpmnElement", "elementId": "Task_AwaitCorrectionStatus", "processId": "order-processing", "classificationKey": "serviceTask" },
+      "target": { "construct": "activity", "family": "activity", "symbol": "shinro-migration/oms-camunda-application/activities.UpdateDashboard", "file": "activities/update_dashboard.go", "startLine": 137 },
+      "decisions": { "sideEffectClass": "idempotent-with-key", "idempotencyKey": "orderId", "coverageClass": "ASSISTED", "reviewRequired": true },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "bpmnElement", "elementId": "Catch_Correction", "processId": "order-processing" },
+      "target": { "construct": "signalHandler", "family": "signalHandler", "symbol": "shinro-migration/oms-camunda-application/workflows.OrderProcessingWorkflow", "file": "workflows/order_processing.go", "startLine": 114 },
+      "decisions": { "sideEffectClass": "read-only", "coverageClass": "AUTO", "reviewRequired": false },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "bpmnElement", "elementId": "Bnd_InvalidPayment", "processId": "order-processing" },
+      "target": { "construct": "comment", "family": "comment", "symbol": "shinro-migration/oms-camunda-application/workflows.isBpmnError", "file": "workflows/order_processing.go", "startLine": 347 },
+      "decisions": { "sideEffectClass": "read-only", "coverageClass": "AUTO", "reviewRequired": false },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "bpmnElement", "elementId": "SubProcess_Cancel", "processId": "order-processing" },
+      "target": { "construct": "signalHandler", "family": "signalHandler", "symbol": "shinro-migration/oms-camunda-application/workflows.OrderProcessingWorkflow", "file": "workflows/order_processing.go", "startLine": 77 },
+      "decisions": { "sideEffectClass": "read-only", "coverageClass": "AUTO", "reviewRequired": false },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "bpmnElement", "elementId": "Task_UpdateCancelled", "processId": "order-processing", "classificationKey": "serviceTask" },
+      "target": { "construct": "activity", "family": "activity", "symbol": "shinro-migration/oms-camunda-application/activities.UpdateDashboard", "file": "activities/update_dashboard.go", "startLine": 137 },
+      "decisions": { "sideEffectClass": "idempotent-with-key", "idempotencyKey": "orderId", "coverageClass": "ASSISTED", "reviewRequired": true },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "bpmnElement", "elementId": "End_Cancelled", "processId": "order-processing", "classificationKey": "endEvent.terminate" },
+      "target": { "construct": "comment", "family": "comment", "symbol": "shinro-migration/oms-camunda-application/workflows.ErrTerminated", "file": "workflows/order_processing.go", "startLine": 22 },
+      "decisions": { "sideEffectClass": "read-only", "coverageClass": "AUTO", "reviewRequired": false },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "bpmnElement", "elementId": "SubProcess_TTL", "processId": "order-processing" },
+      "target": { "construct": "timer", "family": "timer", "symbol": "shinro-migration/oms-camunda-application/workflows.OrderProcessingWorkflow", "file": "workflows/order_processing.go", "startLine": 86 },
+      "decisions": { "sideEffectClass": "read-only", "coverageClass": "AUTO", "reviewRequired": false },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "bpmnElement", "elementId": "Task_UpdateExpired", "processId": "order-processing", "classificationKey": "serviceTask" },
+      "target": { "construct": "activity", "family": "activity", "symbol": "shinro-migration/oms-camunda-application/activities.UpdateDashboard", "file": "activities/update_dashboard.go", "startLine": 137 },
+      "decisions": { "sideEffectClass": "idempotent-with-key", "idempotencyKey": "orderId", "coverageClass": "ASSISTED", "reviewRequired": true },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "bpmnElement", "elementId": "End_Expired", "processId": "order-processing", "classificationKey": "endEvent.terminate" },
+      "target": { "construct": "comment", "family": "comment", "symbol": "shinro-migration/oms-camunda-application/workflows.ErrTerminated", "file": "workflows/order_processing.go", "startLine": 22 },
+      "decisions": { "sideEffectClass": "read-only", "coverageClass": "AUTO", "reviewRequired": false },
+      "status": "generated"
+    },
+    {
+      "source": { "kind": "entryPoint", "processId": "order-processing" },
+      "target": { "construct": "workflow", "family": "workflow", "symbol": "shinro-migration/oms-camunda-application/workflows.OrderProcessingWorkflow", "file": "workflows/order_processing.go", "startLine": 62 },
+      "decisions": { "sideEffectClass": "read-only", "coverageClass": "AUTO", "reviewRequired": false },
+      "status": "generated"
+    }
+  ],
+  "gaps": [
+    {
+      "source": { "kind": "worker", "jobType": "update-dashboard", "processId": "order-processing" },
+      "reason": "JdbcDashboardRepository needs a database DSN not present in the source repo; default DashboardWriter fails loudly with NOT_IMPLEMENTED (SQLDashboardWriter ports the upsert SQL but no driver is wired).",
+      "recommendation": "Wire activities.SetDashboardWriter(activities.NewSQLDashboardWriter(db)) in cmd/worker with a real DataSource, and create the orders_dashboard table.",
+      "severity": "warn"
+    },
+    {
+      "source": { "kind": "worker", "jobType": "publish-fulfillment", "processId": "order-processing" },
+      "reason": "Default FulfillmentPublisher mirrors the source worker's log-only publish (no broker client in the source repo).",
+      "recommendation": "Install a real broker publisher via activities.SetFulfillmentPublisher; consumers must dedupe on the event id fulfillment:<orderId>:v1.",
+      "severity": "warn"
+    }
+  ]
+}
